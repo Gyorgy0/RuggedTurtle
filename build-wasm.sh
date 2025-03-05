@@ -1,0 +1,3 @@
+cargo build --release --target wasm32-unknown-unknown   #cargo builds the WASM binary using the release profile options
+wasm-bindgen --no-typescript --target web --out-dir ./RuggedTurtle-release/ --out-name "rugged_turtle" ./target/wasm32-unknown-unknown/release/rugged_turtle.wasm # wasm-bindgen generates the javascript glue code for the WASM binary so it can be used in a static page
+wasm-opt -O -ol 100 -s 100 -o ./RuggedTurtle-release/rugged_turtle_bg.wasm ./RuggedTurtle-release/rugged_turtle_bg.wasm	# optimizing the WASM binary for speed and size
