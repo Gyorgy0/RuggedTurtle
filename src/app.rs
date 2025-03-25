@@ -1,7 +1,4 @@
-use egui::{
-    self, menu, CentralPanel, Color32, Stroke, Theme, ThemePreference, TopBottomPanel, Visuals,
-    Widget,
-};
+use egui::{self, menu, CentralPanel, Color32, Stroke, TopBottomPanel, Visuals, Widget};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -54,12 +51,13 @@ impl eframe::App for RuggedTurtleApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         CentralPanel::default().show(&ctx, |ui| {
             egui::Window::new("Szöveg szerkesztő")
-                            .collapsible(true).open(&mut self.opened_editor)
-                            .show(ctx, |ctx| {
-                                egui::widgets::TextEdit::multiline(&mut self.text_editor)
-                                    .code_editor()
-                                    .ui(ctx);
-                            });
+                .collapsible(true)
+                .open(&mut self.opened_editor)
+                .show(ctx, |ctx| {
+                    egui::widgets::TextEdit::multiline(&mut self.text_editor)
+                        .code_editor()
+                        .ui(ctx);
+                });
             ui.painter().circle(
                 ctx.screen_rect().center(),
                 55.0,
