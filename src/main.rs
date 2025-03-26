@@ -12,7 +12,7 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
     eframe::run_native(
-        "eframe template",
+        "Rugged turtle",
         native_options,
         Box::new(|cc| Ok(Box::new(rugged_turtle::RuggedTurtleApp::new(cc)))),
     )
