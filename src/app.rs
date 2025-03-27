@@ -19,6 +19,7 @@ pub struct RuggedTurtleApp {
     opened_editor: bool,
     #[serde(skip)]
     turtle: Turtle,
+    dark_mode: bool,
 }
 
 impl Default for RuggedTurtleApp {
@@ -28,6 +29,7 @@ impl Default for RuggedTurtleApp {
             text_editor: "".to_string(),
             opened_editor: false,
             turtle: Turtle::default(),
+            dark_mode: false,
         }
     }
 }
@@ -45,6 +47,12 @@ impl RuggedTurtleApp {
         let mut application: RuggedTurtleApp = Default::default();
         if let Some(storage) = cc.storage {
             application = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        }
+        if application.dark_mode {
+            cc.egui_ctx.set_visuals(Visuals::dark());
+        }
+        else if !application.dark_mode {
+            cc.egui_ctx.set_visuals(Visuals::light());
         }
         application
     }
@@ -69,13 +77,21 @@ impl eframe::App for RuggedTurtleApp {
             self.turtle
                 .set_position(ctx.screen_rect().center().x, ctx.screen_rect().center().y);
             self.turtle.angle = 0.0;
+            self.turtle.pencolor = Color32::BLACK;
+            if self.dark_mode {
+                self.turtle.pencolor = Color32::WHITE;
+            }
+            self.turtle.penwidth = 1.0;
         }
         CentralPanel::default().show(&ctx, |ui| {
             // Painting the lines drawn by the turtle
-            ui.painter().line(self.turtle.path.clone(), Stroke::new(1.0, Color32::BLACK));
+            //for i in 0..self.turtle.path_color.len() {
+            //    ui.painter().line(vec![self.turtle.path[i], self.turtle.path[i+1]], Stroke::new(self.turtle.path_width[i], self.turtle.path_color[i]));
+            //}
+            ui.painter().line(self.turtle.path.clone(), Stroke::new(self.turtle.penwidth, self.turtle.pencolor));
             // TODO: Implementing customizable turtle images
             egui::widgets::Image::new(include_image!(
-                "/home/gyorgy/Desktop/Rust projects/RuggedTurtle/assets/rugged_turtle.svg"
+                "assets/rugged_turtle.svg"
             ))
             .rotate((2_f32 * PI) - self.turtle.angle, Vec2::splat(0.5))
             .paint_at(
@@ -111,9 +127,11 @@ impl eframe::App for RuggedTurtleApp {
                 ui.menu_button("Beállítások", |ui| {
                     if ui.button("Sötét mód").clicked() {
                         ctx.set_visuals(Visuals::dark());
+                        self.dark_mode = true;
                     }
                     if ui.button("Világos mód").clicked() {
                         ctx.set_visuals(Visuals::light());
+                        self.dark_mode = false;
                     }
                 });
             });

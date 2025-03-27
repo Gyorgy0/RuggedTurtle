@@ -1,7 +1,6 @@
 use std::{f32::consts::PI, vec};
 
-use egui::Pos2;
-use log::debug;
+use egui::{Color32, Pos2};
 use serde::{Deserialize, Serialize};
 
 //use crate::documentation::Documentation;
@@ -15,6 +14,10 @@ pub struct Turtle {
     pub angle: f32,
     icon_path: String,
     pub path: Vec<Pos2>,
+    pub pencolor: Color32,
+    pub path_color: Vec<Color32>,
+    pub penwidth: f32,
+    pub path_width: Vec<f32>
 }
 
 impl Turtle {
@@ -43,8 +46,6 @@ pub struct Point {
     y: f32,
 }
 
-
-
 #[derive(Default, Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
 enum Commands {
     #[default]
@@ -52,6 +53,8 @@ enum Commands {
     forward,
     rotate_right,
     rotate_left,
+    pencolor,
+    penwidth,
 }
 #[derive(Default, Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Command {
@@ -78,6 +81,18 @@ const ROTATE_LEFT: Command = Command {
     //documentation:todo!(),
 };
 
+const PENCOLOR: Command = Command {
+    aliases: "tsz tollszin szin pc pencolor color",
+    command: Commands::pencolor,
+    //documentation:todo!(),
+};
+
+const PENWIDTH: Command = Command {
+    aliases: "tv tollvastagsag vastagsag pw penwidth width",
+    command: Commands::penwidth,
+    //documentation:todo!(),
+};
+
 pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
     let command_tokens:Vec<&str> = commandstring.split(";").collect();
     command_tokens.iter().for_each(|command| {
@@ -98,6 +113,8 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             turtle.pos_x -= x_offset;
             turtle.pos_y -= y_offset;
             turtle.path.push(Pos2::new(turtle.pos_x, turtle.pos_y));
+            turtle.path_color.push(turtle.pencolor);
+            turtle.path_width.push(turtle.penwidth);
         }
         else if rotate_right_commands.contains(structure.first().unwrap()) {
             let angle:f32 = arg.first().unwrap().parse().unwrap();
