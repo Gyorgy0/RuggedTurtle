@@ -73,7 +73,7 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             let x_offset = dist as f32 * turtle.angle.sin();
             let y_offset = dist as f32 * turtle.angle.cos();
             turtle.set_position(turtle.position.x - x_offset, turtle.position.y - y_offset);
-            turtle.path[turtle.path_color.len()-1].push(turtle.position);
+            turtle.path[turtle.path_color.len() - 1].push(turtle.position);
             //turtle.path_color.push(turtle.pencolor);
             //turtle.path_width.push(turtle.penwidth);
         } else if rotate_right_commands.contains(structure.first().unwrap()) {

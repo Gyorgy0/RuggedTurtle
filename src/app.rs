@@ -1,7 +1,8 @@
 use std::{cmp::max, f32::consts::PI};
 
 use egui::{
-    self, include_image, menu, CentralPanel, Color32, Image, Pos2, Rect, Stroke, TopBottomPanel, Vec2, Visuals, Widget
+    self, include_image, menu, CentralPanel, Color32, Image, Pos2, Rect, Stroke, TopBottomPanel,
+    Vec2, Visuals, Widget,
 };
 use egui_extras::install_image_loaders;
 use winit::application;
@@ -92,7 +93,14 @@ impl eframe::App for RuggedTurtleApp {
             //    ui.painter().line(vec![self.turtle.path[i], self.turtle.path[i+1]], Stroke::new(self.turtle.path_width[i], self.turtle.path_color[i]));
             //}
             ui.painter().line(
-                convert_vecs(self.turtle.path.get(self.turtle.path_color.len()-1).clone().unwrap_or(&vec![self.turtle.position]).to_vec()),
+                convert_vecs(
+                    self.turtle
+                        .path
+                        .get(self.turtle.path_color.len() - 1)
+                        .clone()
+                        .unwrap_or(&vec![self.turtle.position])
+                        .to_vec(),
+                ),
                 Stroke::new(self.turtle.penwidth, self.turtle.pencolor),
             );
             // TODO: Implementing customizable turtle images
