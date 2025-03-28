@@ -1,13 +1,15 @@
 use std::{cmp::max, f32::consts::PI};
 
 use egui::{
-    self, include_image, menu, CentralPanel, Color32, Image, Pos2, Rect, Stroke, TopBottomPanel,
-    Vec2, Visuals, Widget,
+    self, include_image, menu, CentralPanel, Color32, Image, Pos2, Rect, Stroke, TopBottomPanel, Vec2, Visuals, Widget
 };
 use egui_extras::install_image_loaders;
 use winit::application;
 
-use crate::commands::{execute_command, Turtle};
+use crate::{
+    commands::execute_command,
+    turtle::{convert_vecs, Color32u8, Point, Turtle},
+};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -50,8 +52,7 @@ impl RuggedTurtleApp {
         }
         if application.dark_mode {
             cc.egui_ctx.set_visuals(Visuals::dark());
-        }
-        else if !application.dark_mode {
+        } else if !application.dark_mode {
             cc.egui_ctx.set_visuals(Visuals::light());
         }
         application
@@ -66,7 +67,6 @@ impl eframe::App for RuggedTurtleApp {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-
         // Executes at the start of the program to initialize the turtle
         if self.turtle == Turtle::default() {
             let height = ctx.screen_rect().width().max(ctx.screen_rect().height()) * 0.030;
@@ -76,31 +76,35 @@ impl eframe::App for RuggedTurtleApp {
             //    .set_icon("/home/gyorgy/Desktop/Rust projects/RuggedTurtle/assets/rugged_turtle.svg");
             self.turtle
                 .set_position(ctx.screen_rect().center().x, ctx.screen_rect().center().y);
+            self.turtle.path.push(vec![self.turtle.position]);
             self.turtle.angle = 0.0;
-            self.turtle.pencolor = Color32::BLACK;
+            self.turtle.pencolor = Color32u8::new(0, 0, 0, 255);
+            self.turtle.path_color.push(self.turtle.pencolor);
             if self.dark_mode {
-                self.turtle.pencolor = Color32::WHITE;
+                self.turtle.pencolor = Color32u8::new(255, 255, 255, 255);
             }
             self.turtle.penwidth = 1.0;
+            self.turtle.path_width.push(self.turtle.penwidth);
         }
         CentralPanel::default().show(&ctx, |ui| {
             // Painting the lines drawn by the turtle
             //for i in 0..self.turtle.path_color.len() {
             //    ui.painter().line(vec![self.turtle.path[i], self.turtle.path[i+1]], Stroke::new(self.turtle.path_width[i], self.turtle.path_color[i]));
             //}
-            ui.painter().line(self.turtle.path.clone(), Stroke::new(self.turtle.penwidth, self.turtle.pencolor));
-            // TODO: Implementing customizable turtle images
-            egui::widgets::Image::new(include_image!(
-                "assets/rugged_turtle.svg"
-            ))
-            .rotate((2_f32 * PI) - self.turtle.angle, Vec2::splat(0.5))
-            .paint_at(
-                ui,
-                Rect::from_center_size(
-                    Pos2::new(self.turtle.pos_x, self.turtle.pos_y),
-                    Vec2::new(self.turtle.width, self.turtle.height),
-                ),
+            ui.painter().line(
+                convert_vecs(self.turtle.path.get(self.turtle.path_color.len()-1).clone().unwrap_or(&vec![self.turtle.position]).to_vec()),
+                Stroke::new(self.turtle.penwidth, self.turtle.pencolor),
             );
+            // TODO: Implementing customizable turtle images
+            egui::widgets::Image::new(include_image!("assets/rugged_turtle.svg"))
+                .rotate((2_f32 * PI) - self.turtle.angle, Vec2::splat(0.5))
+                .paint_at(
+                    ui,
+                    Rect::from_center_size(
+                        self.turtle.position.into(),
+                        Vec2::new(self.turtle.width, self.turtle.height),
+                    ),
+                );
         });
         TopBottomPanel::bottom("Console").show(ctx, |ui| {
             egui::widgets::TextEdit::singleline(&mut self.input)
