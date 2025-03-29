@@ -77,7 +77,7 @@ impl eframe::App for RuggedTurtleApp {
             //    .set_icon("/home/gyorgy/Desktop/Rust projects/RuggedTurtle/assets/rugged_turtle.svg");
             self.turtle
                 .set_position(ctx.screen_rect().center().x, ctx.screen_rect().center().y);
-            self.turtle.path.push(vec![self.turtle.position]);
+            self.turtle.path.push(vec![]);
             self.turtle.angle = 0.0;
             self.turtle.pencolor = Color32u8::new(0, 0, 0, 255);
             self.turtle.path_color.push(self.turtle.pencolor);
@@ -89,20 +89,19 @@ impl eframe::App for RuggedTurtleApp {
         }
         CentralPanel::default().show(&ctx, |ui| {
             // Painting the lines drawn by the turtle
-            //for i in 0..self.turtle.path_color.len() {
-            //    ui.painter().line(vec![self.turtle.path[i], self.turtle.path[i+1]], Stroke::new(self.turtle.path_width[i], self.turtle.path_color[i]));
-            //}
-            ui.painter().line(
-                convert_vecs(
-                    self.turtle
-                        .path
-                        .get(self.turtle.path_color.len() - 1)
-                        .clone()
-                        .unwrap_or(&vec![self.turtle.position])
-                        .to_vec(),
-                ),
-                Stroke::new(self.turtle.penwidth, self.turtle.pencolor),
-            );
+            for i in 0..self.turtle.path_color.len() {
+                ui.painter().line(
+                    convert_vecs(
+                        self.turtle
+                            .path
+                            .get(i)
+                            .clone()
+                            .unwrap_or(&vec![self.turtle.position])
+                            .to_vec(),
+                    ),
+                    Stroke::new(*self.turtle.path_width.get(i).unwrap(), *self.turtle.path_color.get(i).unwrap()),
+                );
+            }
             // TODO: Implementing customizable turtle images
             egui::widgets::Image::new(include_image!("assets/rugged_turtle.svg"))
                 .rotate((2_f32 * PI) - self.turtle.angle, Vec2::splat(0.5))
