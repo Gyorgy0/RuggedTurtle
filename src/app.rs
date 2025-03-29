@@ -99,7 +99,10 @@ impl eframe::App for RuggedTurtleApp {
                             .unwrap_or(&vec![self.turtle.position])
                             .to_vec(),
                     ),
-                    Stroke::new(*self.turtle.path_width.get(i).unwrap(), *self.turtle.path_color.get(i).unwrap()),
+                    Stroke::new(
+                        *self.turtle.path_width.get(i).unwrap(),
+                        *self.turtle.path_color.get(i).unwrap(),
+                    ),
                 );
             }
             // TODO: Implementing customizable turtle images

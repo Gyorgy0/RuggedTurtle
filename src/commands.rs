@@ -89,19 +89,17 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             let angle: f32 = arg.first().unwrap().parse().unwrap();
             let corrected_angle = angle * ((2_f32 * PI) / 360_f32);
             turtle.angle -= (2_f32 * PI) - corrected_angle;
-        }
-        else if pencolor_commands.contains(structure.first().unwrap()) {
-            let r:u8 = args.get(0).unwrap().parse().unwrap();
-            let g:u8 = args.get(1).unwrap().parse().unwrap();
-            let b:u8 = args.get(2).unwrap().parse().unwrap();
-            let a:u8 = args.get(3).unwrap().parse().unwrap();
+        } else if pencolor_commands.contains(structure.first().unwrap()) {
+            let r: u8 = args.get(0).unwrap().parse().unwrap();
+            let g: u8 = args.get(1).unwrap().parse().unwrap();
+            let b: u8 = args.get(2).unwrap().parse().unwrap();
+            let a: u8 = args.get(3).unwrap().parse().unwrap();
             turtle.pencolor = Color32u8::new(r, g, b, a);
             turtle.path.push(vec![]);
             turtle.path_color.push(turtle.pencolor);
             turtle.path_width.push(turtle.penwidth);
-        }
-        else if penwidth_commands.contains(structure.first().unwrap()) {
-            let width:f32 = arg.first().unwrap().parse().unwrap();
+        } else if penwidth_commands.contains(structure.first().unwrap()) {
+            let width: f32 = arg.first().unwrap().parse().unwrap();
             turtle.penwidth = width;
             turtle.path.push(vec![]);
             turtle.path_color.push(turtle.pencolor);
