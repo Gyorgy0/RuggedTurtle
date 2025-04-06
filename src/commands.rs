@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, vec};
+use std::{f32::consts::PI, ops::Not, vec};
 
 use egui::{Color32, Pos2};
 use serde::{Deserialize, Serialize};
@@ -16,6 +16,8 @@ enum Commands {
     rotate_left,
     pencolor,
     penwidth,
+    penup,
+    pendown,
 }
 #[derive(Default, Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Command {
@@ -54,6 +56,18 @@ const PENWIDTH: Command = Command {
     //documentation:todo!(),
 };
 
+const PENUP: Command = Command {
+    aliases: "tf tollfel pu penup",
+    command: Commands::penup,
+    //documentation:todo!(),
+};
+
+const PENDOWN: Command = Command {
+    aliases: "tl tollle pd pendown",
+    command: Commands::pendown,
+    //documentation:todo!(),
+};
+
 pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
     let command_tokens: Vec<&str> = commandstring.split(";").collect();
     command_tokens.iter().for_each(|command| {
@@ -66,6 +80,8 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         let rotate_left_commands: Vec<&str> = ROTATE_LEFT.aliases.split(" ").collect();
         let pencolor_commands: Vec<&str> = PENCOLOR.aliases.split(" ").collect();
         let penwidth_commands: Vec<&str> = PENWIDTH.aliases.split(" ").collect();
+        let penup_commands: Vec<&str> = PENUP.aliases.split(" ").collect();
+        let pendown_commands: Vec<&str> = PENDOWN.aliases.split(" ").collect();
         if structure.last().unwrap().contains(")") {
             arg = structure.last().unwrap().split(")").collect();
             args = arg.first().unwrap().split(",").collect();
@@ -74,9 +90,13 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             let dist: i64 = arg.first().unwrap().parse().unwrap();
             let x_offset = dist as f32 * turtle.angle.sin();
             let y_offset = dist as f32 * turtle.angle.cos();
-            turtle.path[turtle.path_color.len() - 1].push(turtle.position);
-            turtle.set_position(turtle.position.x - x_offset, turtle.position.y - y_offset);
-            turtle.path[turtle.path_color.len() - 1].push(turtle.position);
+            if !turtle.pen_up {
+                turtle.path[turtle.path_color.len() - 1].push(turtle.position);
+                turtle.set_position(turtle.position.x - x_offset, turtle.position.y - y_offset);
+                turtle.path[turtle.path_color.len() - 1].push(turtle.position);
+            } else {
+                turtle.set_position(turtle.position.x - x_offset, turtle.position.y - y_offset);
+            }
         } else if rotate_right_commands.contains(structure.first().unwrap()) {
             let angle: f32 = arg.first().unwrap().parse().unwrap();
             let corrected_angle = angle * ((2_f32 * PI) / 360_f32);
@@ -101,6 +121,13 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         } else if penwidth_commands.contains(structure.first().unwrap()) {
             let width: f32 = arg.first().unwrap().parse().unwrap();
             turtle.penwidth = width;
+            turtle.path.push(vec![]);
+            turtle.path_color.push(turtle.pencolor);
+            turtle.path_width.push(turtle.penwidth);
+        } else if penup_commands.contains(structure.first().unwrap()) {
+            turtle.pen_up = true;
+        } else if pendown_commands.contains(structure.first().unwrap()) {
+            turtle.pen_up = false;
             turtle.path.push(vec![]);
             turtle.path_color.push(turtle.pencolor);
             turtle.path_width.push(turtle.penwidth);

@@ -1,11 +1,10 @@
 use std::{cmp::max, f32::consts::PI};
 
 use egui::{
-    self, include_image, menu, CentralPanel, Color32, Image, Pos2, Rect, Stroke, TopBottomPanel,
-    Vec2, Visuals, Widget,
+    self, include_image, load::SizedTexture, menu, CentralPanel, Color32, ImageSource, Rect,
+    Stroke, TextureHandle, TextureOptions, TopBottomPanel, Vec2, Visuals, Widget,
 };
 use egui_extras::install_image_loaders;
-use winit::application;
 
 use crate::{
     commands::execute_command,
@@ -22,6 +21,7 @@ pub struct RuggedTurtleApp {
     opened_editor: bool,
     #[serde(skip)]
     turtle: Turtle,
+    canvas: (u16, u16),
     dark_mode: bool,
 }
 
@@ -32,6 +32,7 @@ impl Default for RuggedTurtleApp {
             text_editor: "".to_string(),
             opened_editor: false,
             turtle: Turtle::default(),
+            canvas: (640, 480),
             dark_mode: false,
         }
     }
@@ -53,8 +54,10 @@ impl RuggedTurtleApp {
         }
         if application.dark_mode {
             cc.egui_ctx.set_visuals(Visuals::dark());
+            cc.egui_ctx.set_pixels_per_point(1.25);
         } else if !application.dark_mode {
             cc.egui_ctx.set_visuals(Visuals::light());
+            cc.egui_ctx.set_pixels_per_point(1.25);
         }
         application
     }
@@ -69,23 +72,23 @@ impl eframe::App for RuggedTurtleApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Executes at the start of the program to initialize the turtle
+        let turtle_icon: egui::ImageSource = include_image!("assets/rugged_turtle.svg");
         if self.turtle == Turtle::default() {
             let height = ctx.screen_rect().width().max(ctx.screen_rect().height()) * 0.030;
             self.turtle.set_size(0.75 * height, height);
-            //application
-            //    .turtle
-            //    .set_icon("/home/gyorgy/Desktop/Rust projects/RuggedTurtle/assets/rugged_turtle.svg");
             self.turtle
                 .set_position(ctx.screen_rect().center().x, ctx.screen_rect().center().y);
             self.turtle.path.push(vec![]);
             self.turtle.angle = 0.0;
             self.turtle.pencolor = Color32u8::new(0, 0, 0, 255);
-            self.turtle.path_color.push(self.turtle.pencolor);
             if self.dark_mode {
                 self.turtle.pencolor = Color32u8::new(255, 255, 255, 255);
             }
+            self.turtle.path_color.push(self.turtle.pencolor);
             self.turtle.penwidth = 1.0;
+            self.turtle.pen_up = false;
             self.turtle.path_width.push(self.turtle.penwidth);
+            ctx.forget_image(turtle_icon.uri().unwrap());
         }
         CentralPanel::default().show(&ctx, |ui| {
             // Painting the lines drawn by the turtle
@@ -105,8 +108,9 @@ impl eframe::App for RuggedTurtleApp {
                     ),
                 );
             }
-            // TODO: Implementing customizable turtle images
-            egui::widgets::Image::new(include_image!("assets/rugged_turtle.svg"))
+            // Plus function: Implementing customizable turtle images
+            //self.turtle.set_icon(turtle_icon.uri().unwrap());
+            egui::widgets::Image::new(turtle_icon.clone())
                 .rotate((2_f32 * PI) - self.turtle.angle, Vec2::splat(0.5))
                 .paint_at(
                     ui,
@@ -116,15 +120,27 @@ impl eframe::App for RuggedTurtleApp {
                     ),
                 );
         });
-        TopBottomPanel::bottom("Console").show(ctx, |ui| {
-            egui::widgets::TextEdit::singleline(&mut self.input)
-                .desired_width(f32::INFINITY)
-                .background_color(Color32::KHAKI)
-                .ui(ui);
-            if ui.button("Futtatás").clicked() {
-                execute_command(self.input.clone(), &mut self.turtle);
-            }
-        });
+        if !self.dark_mode {
+            TopBottomPanel::bottom("Console").show(ctx, |ui| {
+                egui::widgets::TextEdit::singleline(&mut self.input)
+                    .desired_width(f32::INFINITY)
+                    .background_color(Color32::KHAKI)
+                    .text_color(Color32::BLACK)
+                    .ui(ui);
+                if ui.button("Futtatás").clicked() {
+                    execute_command(self.input.clone(), &mut self.turtle);
+                }
+            });
+        } else if self.dark_mode {
+            TopBottomPanel::bottom("Console").show(ctx, |ui| {
+                egui::widgets::TextEdit::singleline(&mut self.input)
+                    .desired_width(f32::INFINITY)
+                    .ui(ui);
+                if ui.button("Futtatás").clicked() {
+                    execute_command(self.input.clone(), &mut self.turtle);
+                }
+            });
+        }
         TopBottomPanel::top("Menubar").show(ctx, |ui| {
             menu::bar(ui, |ui| {
                 ui.menu_button("Fájl", |ui| {

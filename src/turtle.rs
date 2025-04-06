@@ -7,12 +7,13 @@ pub struct Turtle {
     pub width: f32,
     pub height: f32,
     pub angle: f32,
-    icon_path: String,
+    pub icon_path: String,
     pub path: Vec<Vec<Point>>,
     pub pencolor: Color32u8,
     pub path_color: Vec<Color32u8>,
     pub penwidth: f32,
     pub path_width: Vec<f32>,
+    pub pen_up: bool,
 }
 
 impl Turtle {
