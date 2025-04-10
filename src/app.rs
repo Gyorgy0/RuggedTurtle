@@ -1,9 +1,9 @@
-use std::{cmp::max, default, f32::consts::PI};
+use std::{cmp::max, default, f32::consts::PI, process::id};
 
 use egui::{
-    self, color_picker::Alpha, include_image, load::SizedTexture, menu, CentralPanel, Color32,
-    ImageSource, Rect, Stroke, TextureHandle, TextureOptions, TopBottomPanel, Vec2, Visuals,
-    Widget,
+    self, color_picker::Alpha, include_image, load::SizedTexture, menu, util::hash, CentralPanel,
+    Color32, Id, ImageSource, Modal, Rect, Stroke, TextureHandle, TextureOptions, TopBottomPanel,
+    Vec2, Visuals, Widget,
 };
 use egui_dialogs::{
     dialog_window, Dialog, DialogContext, DialogDetails, Dialogs, StandardDialog, StandardReply,
@@ -147,27 +147,47 @@ impl eframe::App for RuggedTurtleApp<'_> {
                     .ui(ui);
 
                 if ui.button("Futtatás").clicked() {
-                    DialogDetails::new(ColorPickerDialog {
+                    /*let dialog_details = DialogDetails::new(ColorPickerDialog {
                         picked_color: self.turtle.pencolor.into(),
                     })
-                    .on_reply(move |res| {
-                        res
-                    })
-                    .show(&mut self.dialogs);
-                    execute_command(self.input.clone(), &mut self.turtle);
+                    .on_reply(
+                        (move |res: Color32| {
+                            self.turtle.pencolor.clone() = Color32u8::new(res.r(), 0, 0, 255);
+                        }),
+                    );
+                    dialog_details.show(&mut self.dialogs);*/
+                    self.colordialog = true;
+                    if self.colordialog {
+                        Modal::new(Id::new(hash("Color picker"))).show(ui.ctx(), |ui| {
+                            ui.heading("Asd");
+                            ui.set_width(100.0);
+                            ui.set_height(100.0);
+                            ui.label("What's your name: ");
+                            let mut picked_color: Color32 = self.turtle.pencolor.into();
+                            egui::widgets::color_picker::color_picker_color32(
+                                ui,
+                                &mut picked_color,
+                                Alpha::OnlyBlend,
+                            );
+                            if ui.button("Done").clicked() {
+                                self.colordialog = false;
+                                self.turtle.pencolor = Color32u8::new(
+                                    picked_color.r(),
+                                    picked_color.g(),
+                                    picked_color.b(),
+                                    picked_color.a(),
+                                );
+                                self.turtle.path.push(vec![]);
+                                self.turtle.path_color.push(self.turtle.pencolor);
+                                self.turtle.path_width.push(self.turtle.penwidth);
+                            }
+                        });
+                    }
+                    //execute_command(self.input.clone(), &mut self.turtle);
                 }
             });
         }
-        self.dialogs.show(ctx);
-        if let Some(res) = self.dialogs.show(ctx) {
-            // handle reply from close confirmation dialog
-                match res.reply() {
-                    Ok(Color32) => {
-                        res.reply().unwrap();
-                    },
-                    _ => {},
-                }
-        }
+        //self.dialogs.show(ctx);
         TopBottomPanel::top("Menubar").show(ctx, |ui| {
             menu::bar(ui, |ui| {
                 ui.menu_button("Fájl", |ui| {

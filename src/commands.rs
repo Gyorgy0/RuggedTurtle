@@ -26,6 +26,18 @@ enum Commands {
     penup,
     pendown,
 }
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+enum VariableTypes {
+    boolean(bool),
+    number(f64),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct Variable {
+    variable_type: VariableTypes,
+}
+
 #[derive(Default, Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Command {
     aliases: &'static str,
