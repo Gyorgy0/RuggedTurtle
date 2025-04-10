@@ -35,6 +35,7 @@ enum VariableTypes {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Variable {
+    name: String,
     variable_type: VariableTypes,
 }
 
