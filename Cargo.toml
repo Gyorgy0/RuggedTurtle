@@ -17,12 +17,13 @@ log = "0.4"
 
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }
-egui_plot = "0.31.0"
+egui_plot = "0.32.1"
 rand = "0.9.0"
 getrandom = { version = "0.3.2", features = ["wasm_js"] }
 egui_extras = { version = "0.31.1", features = ["all_loaders", "file", "http", "image"] }
 image = "0.25.6"
-winit = { version = "0.30.9", features = ["x11"] }
+winit = { version = "0.30.9", features = ["android-native-activity", "x11"] }
+egui_dialogs = "0.3.7"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

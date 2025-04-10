@@ -1,8 +1,12 @@
-use std::{cmp::max, f32::consts::PI};
+use std::{cmp::max, default, f32::consts::PI};
 
 use egui::{
-    self, include_image, load::SizedTexture, menu, CentralPanel, Color32, ImageSource, Rect,
-    Stroke, TextureHandle, TextureOptions, TopBottomPanel, Vec2, Visuals, Widget,
+    self, color_picker::Alpha, include_image, load::SizedTexture, menu, CentralPanel, Color32,
+    ImageSource, Rect, Stroke, TextureHandle, TextureOptions, TopBottomPanel, Vec2, Visuals,
+    Widget,
+};
+use egui_dialogs::{
+    dialog_window, Dialog, DialogContext, DialogDetails, Dialogs, StandardDialog, StandardReply,
 };
 use egui_extras::install_image_loaders;
 
@@ -14,7 +18,7 @@ use crate::{
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct RuggedTurtleApp {
+pub struct RuggedTurtleApp<'a> {
     #[serde(skip)]
     input: String,
     text_editor: String,
@@ -23,9 +27,12 @@ pub struct RuggedTurtleApp {
     turtle: Turtle,
     canvas: (u16, u16),
     dark_mode: bool,
+    #[serde(skip)]
+    dialogs: Dialogs<'a>,
+    colordialog: bool,
 }
 
-impl Default for RuggedTurtleApp {
+impl Default for RuggedTurtleApp<'_> {
     fn default() -> Self {
         Self {
             input: String::new(),
@@ -34,11 +41,13 @@ impl Default for RuggedTurtleApp {
             turtle: Turtle::default(),
             canvas: (640, 480),
             dark_mode: false,
+            dialogs: Dialogs::default(),
+            colordialog: false,
         }
     }
 }
 
-impl RuggedTurtleApp {
+impl<'a> RuggedTurtleApp<'_> {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
@@ -63,7 +72,7 @@ impl RuggedTurtleApp {
     }
 }
 
-impl eframe::App for RuggedTurtleApp {
+impl eframe::App for RuggedTurtleApp<'_> {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
@@ -136,10 +145,28 @@ impl eframe::App for RuggedTurtleApp {
                 egui::widgets::TextEdit::singleline(&mut self.input)
                     .desired_width(f32::INFINITY)
                     .ui(ui);
+
                 if ui.button("Futtatás").clicked() {
+                    DialogDetails::new(ColorPickerDialog {
+                        picked_color: self.turtle.pencolor.into(),
+                    })
+                    .on_reply(move |res| {
+                        res
+                    })
+                    .show(&mut self.dialogs);
                     execute_command(self.input.clone(), &mut self.turtle);
                 }
             });
+        }
+        self.dialogs.show(ctx);
+        if let Some(res) = self.dialogs.show(ctx) {
+            // handle reply from close confirmation dialog
+                match res.reply() {
+                    Ok(Color32) => {
+                        res.reply().unwrap();
+                    },
+                    _ => {},
+                }
         }
         TopBottomPanel::top("Menubar").show(ctx, |ui| {
             menu::bar(ui, |ui| {
@@ -166,5 +193,32 @@ impl eframe::App for RuggedTurtleApp {
                 });
             });
         });
+    }
+}
+
+pub struct ColorPickerDialog {
+    pub picked_color: Color32,
+}
+
+impl Dialog<Color32> for ColorPickerDialog {
+    fn show(&mut self, ctx: &egui::Context, dctx: &DialogContext) -> Option<Color32> {
+        // return None if the user hasn't replied
+        let mut res = None;
+
+        // draw the dialog
+        dialog_window(ctx, dctx, "Confirm name").show(ctx, |ui| {
+            ui.label("What's your name: ");
+            egui::widgets::color_picker::color_picker_color32(
+                ui,
+                &mut self.picked_color,
+                Alpha::OnlyBlend,
+            );
+            if ui.button("Done").clicked() {
+                // set the reply and end the dialog
+                res = Some(self.picked_color.clone());
+            }
+        });
+
+        res
     }
 }

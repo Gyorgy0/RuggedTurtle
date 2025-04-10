@@ -1,4 +1,6 @@
-//#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+
+use rugged_turtle::RuggedTurtleApp;
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
@@ -14,7 +16,7 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "Rugged turtle",
         native_options,
-        Box::new(|cc| Ok(Box::new(rugged_turtle::RuggedTurtleApp::new(cc)))),
+        Box::new(|cc| Ok(Box::new(RuggedTurtleApp::new(cc)))),
     )
 }
 
@@ -44,7 +46,7 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::new(rugged_turtle::RuggedTurtleApp::new(cc)))),
+                Box::new(|cc| Ok(Box::new(RuggedTurtleApp::new(cc)))),
             )
             .await;
         // LOADING SCREEN NOT YET IMPLEMENTED

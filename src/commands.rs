@@ -1,9 +1,14 @@
 use std::{f32::consts::PI, ops::Not, vec};
 
 use egui::{Color32, Pos2};
+use egui_dialogs::{DialogDetails, Dialogs};
 use serde::{Deserialize, Serialize};
 
-use crate::turtle::{Color32u8, Point, Turtle};
+use crate::{
+    app::ColorPickerDialog,
+    turtle::{Color32u8, Point, Turtle},
+    RuggedTurtleApp,
+};
 
 //use crate::documentation::Documentation;
 
@@ -15,7 +20,9 @@ enum Commands {
     rotate_right,
     rotate_left,
     pencolor,
+    pencolorpicker,
     penwidth,
+    penwidthpicker,
     penup,
     pendown,
 }
@@ -50,9 +57,21 @@ const PENCOLOR: Command = Command {
     //documentation:todo!(),
 };
 
+const PENCOLORPICKER: Command = Command {
+    aliases: "tsz! tollszin! szin! pc! pencolor! color!",
+    command: Commands::pencolorpicker,
+    //documentation:todo!(),
+};
+
 const PENWIDTH: Command = Command {
     aliases: "tv tollvastagsag vastagsag pw penwidth width",
     command: Commands::penwidth,
+    //documentation:todo!(),
+};
+
+const PENWIDTHPICKER: Command = Command {
+    aliases: "tv! tollvastagsag! vastagsag! pw! penwidth! width!",
+    command: Commands::penwidthpicker,
     //documentation:todo!(),
 };
 
@@ -79,7 +98,9 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         let rotate_right_commands: Vec<&str> = ROTATE_RIGHT.aliases.split(" ").collect();
         let rotate_left_commands: Vec<&str> = ROTATE_LEFT.aliases.split(" ").collect();
         let pencolor_commands: Vec<&str> = PENCOLOR.aliases.split(" ").collect();
+        let pencolorpicker_commands: Vec<&str> = PENCOLORPICKER.aliases.split(" ").collect();
         let penwidth_commands: Vec<&str> = PENWIDTH.aliases.split(" ").collect();
+        let penwidthpicker_commands: Vec<&str> = PENWIDTHPICKER.aliases.split(" ").collect();
         let penup_commands: Vec<&str> = PENUP.aliases.split(" ").collect();
         let pendown_commands: Vec<&str> = PENDOWN.aliases.split(" ").collect();
         if structure.last().unwrap().contains(")") {
@@ -118,7 +139,18 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             turtle.path.push(vec![]);
             turtle.path_color.push(turtle.pencolor);
             turtle.path_width.push(turtle.penwidth);
+        } else if pencolorpicker_commands.contains(structure.first().unwrap()) {
+            //dialogs.info("asd", "asd");
+            turtle.path.push(vec![]);
+            turtle.path_color.push(turtle.pencolor);
+            turtle.path_width.push(turtle.penwidth);
         } else if penwidth_commands.contains(structure.first().unwrap()) {
+            let width: f32 = arg.first().unwrap().parse().unwrap();
+            turtle.penwidth = width;
+            turtle.path.push(vec![]);
+            turtle.path_color.push(turtle.pencolor);
+            turtle.path_width.push(turtle.penwidth);
+        } else if penwidthpicker_commands.contains(structure.first().unwrap()) {
             let width: f32 = arg.first().unwrap().parse().unwrap();
             turtle.penwidth = width;
             turtle.path.push(vec![]);
