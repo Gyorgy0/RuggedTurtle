@@ -1,4 +1,4 @@
-use std::{cmp::max, default, f32::consts::PI, process::id};
+use std::{cmp::max, default, f32::consts::PI, ops::RangeInclusive, process::id, result};
 
 use egui::{
     self, color_picker::Alpha, include_image, load::SizedTexture, menu, util::hash, CentralPanel,
@@ -12,7 +12,7 @@ use egui_extras::install_image_loaders;
 
 use crate::{
     commands::execute_command,
-    turtle::{convert_vecs, Color32u8, Point, Turtle},
+    turtle::{convert_vecs, Turtle},
 };
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -80,6 +80,35 @@ impl eframe::App for RuggedTurtleApp<'_> {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        const COLOR_PICKER_DIALOG_ID: &str = "color_picker_dialog";
+        const WIDTH_INPUT_DIALOG_ID: &str = "width_input_dialog";
+        // Logic for showing the dialogs and handling the reply is there is one
+        if let Some(res) = self.dialogs.show(ctx) {
+            if res.is_reply_of(COLOR_PICKER_DIALOG_ID) {
+                match res.reply() {
+                    Ok(picked_color) => {
+                        self.turtle.pencolor = picked_color;
+                        self.turtle.path.push(vec![]);
+                        self.turtle.path_color.push(self.turtle.pencolor);
+                        self.turtle.path_width.push(self.turtle.penwidth);
+                        execute_command(self.input.clone(), &mut self.turtle);
+                    }
+                    _ => {}
+                }
+            } else if res.is_reply_of(WIDTH_INPUT_DIALOG_ID) {
+                match res.reply() {
+                    Ok(new_width) => {
+                        self.turtle.penwidth = new_width;
+                        self.turtle.path.push(vec![]);
+                        self.turtle.path_color.push(self.turtle.pencolor);
+                        self.turtle.path_width.push(self.turtle.penwidth);
+                        execute_command(self.input.clone(), &mut self.turtle);
+                    }
+                    _ => {}
+                }
+            }
+        }
+
         // Executes at the start of the program to initialize the turtle
         let turtle_icon: egui::ImageSource = include_image!("assets/rugged_turtle.svg");
         if self.turtle == Turtle::default() {
@@ -89,9 +118,9 @@ impl eframe::App for RuggedTurtleApp<'_> {
                 .set_position(ctx.screen_rect().center().x, ctx.screen_rect().center().y);
             self.turtle.path.push(vec![]);
             self.turtle.angle = 0.0;
-            self.turtle.pencolor = Color32u8::new(0, 0, 0, 255);
+            self.turtle.pencolor = Color32::from_rgba_unmultiplied(0, 0, 0, 255);
             if self.dark_mode {
-                self.turtle.pencolor = Color32u8::new(255, 255, 255, 255);
+                self.turtle.pencolor = Color32::from_rgba_unmultiplied(255, 255, 255, 255);
             }
             self.turtle.path_color.push(self.turtle.pencolor);
             self.turtle.penwidth = 1.0;
@@ -103,14 +132,12 @@ impl eframe::App for RuggedTurtleApp<'_> {
             // Painting the lines drawn by the turtle
             for i in 0..self.turtle.path_color.len() {
                 ui.painter().line(
-                    convert_vecs(
-                        self.turtle
-                            .path
-                            .get(i)
-                            .clone()
-                            .unwrap_or(&vec![self.turtle.position])
-                            .to_vec(),
-                    ),
+                    self.turtle
+                        .path
+                        .get(i)
+                        .clone()
+                        .unwrap_or(&vec![self.turtle.position])
+                        .to_vec(),
                     Stroke::new(
                         *self.turtle.path_width.get(i).unwrap(),
                         *self.turtle.path_color.get(i).unwrap(),
@@ -137,7 +164,9 @@ impl eframe::App for RuggedTurtleApp<'_> {
                     .text_color(Color32::BLACK)
                     .ui(ui);
                 if ui.button("Futtatás").clicked() {
-                    execute_command(self.input.clone(), &mut self.turtle);
+                    DialogDetails::new(WidthInputDialog::new(self.turtle.penwidth))
+                        .with_id(WIDTH_INPUT_DIALOG_ID)
+                        .show(&mut self.dialogs);
                 }
             });
         } else if self.dark_mode {
@@ -147,43 +176,9 @@ impl eframe::App for RuggedTurtleApp<'_> {
                     .ui(ui);
 
                 if ui.button("Futtatás").clicked() {
-                    /*let dialog_details = DialogDetails::new(ColorPickerDialog {
-                        picked_color: self.turtle.pencolor.into(),
-                    })
-                    .on_reply(
-                        (move |res: Color32| {
-                            self.turtle.pencolor.clone() = Color32u8::new(res.r(), 0, 0, 255);
-                        }),
-                    );
-                    dialog_details.show(&mut self.dialogs);*/
-                    self.colordialog = true;
-                    if self.colordialog {
-                        Modal::new(Id::new(hash("Color picker"))).show(ui.ctx(), |ui| {
-                            ui.heading("Asd");
-                            ui.set_width(100.0);
-                            ui.set_height(100.0);
-                            ui.label("What's your name: ");
-                            let mut picked_color: Color32 = self.turtle.pencolor.into();
-                            egui::widgets::color_picker::color_picker_color32(
-                                ui,
-                                &mut picked_color,
-                                Alpha::OnlyBlend,
-                            );
-                            if ui.button("Done").clicked() {
-                                self.colordialog = false;
-                                self.turtle.pencolor = Color32u8::new(
-                                    picked_color.r(),
-                                    picked_color.g(),
-                                    picked_color.b(),
-                                    picked_color.a(),
-                                );
-                                self.turtle.path.push(vec![]);
-                                self.turtle.path_color.push(self.turtle.pencolor);
-                                self.turtle.path_width.push(self.turtle.penwidth);
-                            }
-                        });
-                    }
-                    //execute_command(self.input.clone(), &mut self.turtle);
+                    DialogDetails::new(ColorPickerDialog::new(self.turtle.pencolor))
+                        .with_id(COLOR_PICKER_DIALOG_ID)
+                        .show(&mut self.dialogs);
                 }
             });
         }
@@ -218,25 +213,74 @@ impl eframe::App for RuggedTurtleApp<'_> {
 
 pub struct ColorPickerDialog {
     pub picked_color: Color32,
+    pub original_color: Color32,
 }
 
+impl ColorPickerDialog {
+    pub fn new(color: Color32) -> Self {
+        Self {
+            picked_color: color,
+            original_color: color,
+        }
+    }
+}
 impl Dialog<Color32> for ColorPickerDialog {
     fn show(&mut self, ctx: &egui::Context, dctx: &DialogContext) -> Option<Color32> {
-        // return None if the user hasn't replied
+        // Return None if the user hasn't selected something
         let mut res = None;
 
-        // draw the dialog
-        dialog_window(ctx, dctx, "Confirm name").show(ctx, |ui| {
-            ui.label("What's your name: ");
+        // Draw the dialog ui
+        dialog_window(ctx, dctx, "Szín kiválasztása").show(ctx, |ui| {
+            ui.label("Kérlek, válassz egy színt: ");
             egui::widgets::color_picker::color_picker_color32(
                 ui,
                 &mut self.picked_color,
                 Alpha::OnlyBlend,
             );
-            if ui.button("Done").clicked() {
-                // set the reply and end the dialog
-                res = Some(self.picked_color.clone());
-            }
+            ui.horizontal(|ui| {
+                if ui.button("Kész").clicked() {
+                    res = Some(self.picked_color);
+                }
+                if ui.button("Mégse").clicked() {
+                    res = Some(self.original_color);
+                }
+            });
+        });
+
+        res
+    }
+}
+
+pub struct WidthInputDialog {
+    pub new_width: f32,
+    pub original_width: f32,
+}
+
+impl WidthInputDialog {
+    pub fn new(width: f32) -> Self {
+        Self {
+            new_width: width,
+            original_width: width,
+        }
+    }
+}
+impl Dialog<f32> for WidthInputDialog {
+    fn show(&mut self, ctx: &egui::Context, dctx: &DialogContext) -> Option<f32> {
+        // Return None if the user hasn't selected something
+        let mut res = None;
+
+        // Draw the dialog ui
+        dialog_window(ctx, dctx, "Vonalvastagság kiválasztása").show(ctx, |ui| {
+            ui.label("Kérlek, add meg, milyen vastag legyen a vonal: ");
+            egui::Slider::new(&mut self.new_width, RangeInclusive::new(0_f32, 100_f32)).ui(ui);
+            ui.horizontal(|ui| {
+                if ui.button("Kész").clicked() {
+                    res = Some(self.new_width);
+                }
+                if ui.button("Mégse").clicked() {
+                    res = Some(self.original_width);
+                }
+            });
         });
 
         res

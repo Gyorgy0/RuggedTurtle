@@ -4,11 +4,7 @@ use egui::{Color32, Pos2};
 use egui_dialogs::{DialogDetails, Dialogs};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    app::ColorPickerDialog,
-    turtle::{Color32u8, Point, Turtle},
-    RuggedTurtleApp,
-};
+use crate::{app::ColorPickerDialog, turtle::Turtle};
 
 //use crate::documentation::Documentation;
 
@@ -70,22 +66,9 @@ const PENCOLOR: Command = Command {
     //documentation:todo!(),
 };
 
-const PENCOLORPICKER: Command = Command {
-    aliases: "tsz! tollszin! szin! pc! pencolor! color!",
-    command: Commands::pencolorpicker,
-    //documentation:todo!(),
-};
-
 const PENWIDTH: Command = Command {
     aliases: "tv tollvastagsag vastagsag pw penwidth width",
     command: Commands::penwidth,
-    //documentation:todo!(),
-};
-
-const PENWIDTHPICKER: Command = Command {
-    aliases: "tv! tollvastagsag! vastagsag! pw! penwidth! width!",
-    command: Commands::penwidthpicker,
-    //documentation:todo!(),
 };
 
 const PENUP: Command = Command {
@@ -111,9 +94,7 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         let rotate_right_commands: Vec<&str> = ROTATE_RIGHT.aliases.split(" ").collect();
         let rotate_left_commands: Vec<&str> = ROTATE_LEFT.aliases.split(" ").collect();
         let pencolor_commands: Vec<&str> = PENCOLOR.aliases.split(" ").collect();
-        let pencolorpicker_commands: Vec<&str> = PENCOLORPICKER.aliases.split(" ").collect();
         let penwidth_commands: Vec<&str> = PENWIDTH.aliases.split(" ").collect();
-        let penwidthpicker_commands: Vec<&str> = PENWIDTHPICKER.aliases.split(" ").collect();
         let penup_commands: Vec<&str> = PENUP.aliases.split(" ").collect();
         let pendown_commands: Vec<&str> = PENDOWN.aliases.split(" ").collect();
         if structure.last().unwrap().contains(")") {
@@ -139,31 +120,16 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             let angle: f32 = arg.first().unwrap().parse().unwrap();
             let corrected_angle = angle * ((2_f32 * PI) / 360_f32);
             turtle.angle -= (2_f32 * PI) - corrected_angle;
-        } else if rotate_left_commands.contains(structure.first().unwrap()) {
-            let angle: f32 = arg.first().unwrap().parse().unwrap();
-            let corrected_angle = angle * ((2_f32 * PI) / 360_f32);
-            turtle.angle -= (2_f32 * PI) - corrected_angle;
         } else if pencolor_commands.contains(structure.first().unwrap()) {
             let r: u8 = args.get(0).unwrap().parse().unwrap();
             let g: u8 = args.get(1).unwrap().parse().unwrap();
             let b: u8 = args.get(2).unwrap().parse().unwrap();
             let a: u8 = args.get(3).unwrap().parse().unwrap();
-            turtle.pencolor = Color32u8::new(r, g, b, a);
-            turtle.path.push(vec![]);
-            turtle.path_color.push(turtle.pencolor);
-            turtle.path_width.push(turtle.penwidth);
-        } else if pencolorpicker_commands.contains(structure.first().unwrap()) {
-            //dialogs.info("asd", "asd");
+            turtle.pencolor = Color32::from_rgba_unmultiplied(r, g, b, a);
             turtle.path.push(vec![]);
             turtle.path_color.push(turtle.pencolor);
             turtle.path_width.push(turtle.penwidth);
         } else if penwidth_commands.contains(structure.first().unwrap()) {
-            let width: f32 = arg.first().unwrap().parse().unwrap();
-            turtle.penwidth = width;
-            turtle.path.push(vec![]);
-            turtle.path_color.push(turtle.pencolor);
-            turtle.path_width.push(turtle.penwidth);
-        } else if penwidthpicker_commands.contains(structure.first().unwrap()) {
             let width: f32 = arg.first().unwrap().parse().unwrap();
             turtle.penwidth = width;
             turtle.path.push(vec![]);
