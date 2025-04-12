@@ -1,0 +1,105 @@
+Command test cases:
+
+<cmd>(100)  - PASS - (Executes the command)
+<cmd>(1a)   - FAIL - (Invalid argument) - Must display help message
+<cmd>a12)   - FAIL - (Invalid command)
+<cmd>(15a   - FAIL - (Invalid command)
+<cmd>(a1a5  - FAIL - (Invalid argument and command)
+a<cmd>(10)  - FAIL - (Invalid command)
+
+Variable test cases:
+
+<var> = 1 / true    - PASS - (Specifies the value of the variable)
+<var>               - PASS - (Prints out the value of the variable)
+<var> = 1a          - FAIL - (Invalid value must be number or booelan)
+<var> = a = 5       - FAIL - (Invalid operation)
+<var>a              - FAIL - (Variable doesn't exists)
+
+Loop test cases:
+<cmd>(<var>, 1, 10) {}  - PASS - (Executes the loop)
+<cmd>a(<var>, 1, 10) {} - FAIL - (Invalid command)
+<cmd>(<var>a, 1, 10) {} - FAIL - (One of the arguments is invalid) - Must display help message
+
+Conditional commands test cases:
+<cmd>(<condition>) {}   - PASS - (Executes the code, until the condition is true)
+<cmd>a(<condition>) {}  - FAIL - (Invalid command)
+<cmd>(<condition>a) {}  - FAIL - (Condition is invalid) - Must display help message
+
+Logical operators:
+    JUST numerical values:
+    <                   - less than
+    >                   - more than
+    <=                  - less or equal than
+    >=                  - more or equal than
+
+    BOTH value types:
+    ==                  - equals to
+    !=                  - doesn't equal to
+
+    JUST booleanic values:
+    &&                  - and
+    ||                  - or
+    !(<boolean_value>)  - not
+
+Operator test cases:
+< - LESS THAN
+1   < 5     - true
+5   < 1     - false
+
+> - MORE THAN
+1   > 5     - false
+5   > 1     - true
+
+<= - LESS OR EQUAL THAN
+1   <= 1    - true
+1   <= 5    - true
+5   <= 1    - false
+
+>= - MORE OR EQUAL THAN
+1   >= 1    - true
+1   >= 5    - false
+5   >= 1    - true
+
+
+== - EQUAL TO
+
+1       == 1        - true
+1       == 2        - false
+true    == true     - true
+true    == false    - false
+false   == true     - false
+
+!= - NOT EQUAL TO
+
+1       != 1        - false
+1       != 2        - true
+true    != true     - false
+true    != false    - true
+false   != true     - true
+
+
+&& - AND
+true    && true     == true
+true    && false    == false
+false   && true     == false
+false   && false    == false
+
+|| - OR
+true    || true     == true
+true    || false    == true
+false   || true     == true
+false   || false    == false
+
+!<BOOLEAN_VALUE> - NOT
+!(true)     == false
+!(false)    == true
+
+Arithmetical operators:
++   - Addition
+-   - Subtraction
+*   - Multiplication
+/   - Division
+
+Arithmetical test cases:
+PEMDAS and division by zero!!!
+Check for overflows and underflows!!!
