@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, vec};
+use std::{f32::consts::PI, io::Split, vec};
 
 use egui::Color32;
 use serde::{Deserialize, Serialize};
@@ -99,31 +99,23 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         .iter_mut()
         .map(|f| f.to_string())
         .collect();
-    //
-    //  Printing out the trimmed tokens
-    //
-    println!("{:?}", command_tokens);
     let mut is_command_block = false;
     let mut repeat_command: Vec<String> = vec![];
     (0..command_tokens.clone().len()).into_iter().for_each(|i| {
-        if command_tokens[i].contains("{") {
+        if command_tokens[i].contains("{") && !command_tokens[i].contains("}") {
             is_command_block = true;
             repeat_command.push(command_tokens[i].to_string());
             command_tokens[i] = "".to_string();
-        } else if !command_tokens[i].contains("}")
+        } else if !command_tokens[i].contains("{")
             && !command_tokens[i].contains("}")
             && is_command_block
         {
             repeat_command.push(command_tokens[i].to_string());
             command_tokens[i] = "".to_string();
-        } else if command_tokens[i].contains("}") {
+        } else if command_tokens[i].contains("}") && !command_tokens[i].contains("{") {
             is_command_block = false;
             repeat_command.push(command_tokens[i].to_string());
             command_tokens[i] = repeat_command.join(";");
-            //
-            //  Printing out the trimmed tokens
-            //
-            println!("{:?}", repeat_command);
             repeat_command = vec![];
         }
     });
@@ -131,18 +123,24 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
     //
     //  Printing out the chopped up input (command block for the execution controls are not chopped up)
     //
-    println!("{:?}", command_tokens);
+    //println!("Cmd tokens: {:?}", command_tokens);
     command_tokens.iter().enumerate().for_each(|command| {
+        let mut args: Vec<&str> = vec![];
+        let mut command_blocks: &str = "";
         // Structure:
         // e.g  input:  "forward(100)"
         //      output: ["forward", "100)"]
         // Structure of the <structure> variable
         // structure = ["<command>", "<arguments>)", "<command_block>}"]
-        let structure: Vec<&str> = command.1.split('(').collect();
-        let mut arg: Vec<&str> = vec![];
-        let mut args: Vec<&str> = vec![];
-        let mut command_block: Vec<&str> = vec![];
-        let mut command_blocks: &str = "";
+        let mut structure: Vec<&str>;
+        if command.1.contains("{") && command.1.contains("}") {
+            structure = command.1.split(&['{', '}'][..]).collect();
+            structure.retain(|&x| x != "");
+            command_blocks = structure.last().unwrap();
+        }
+        structure = command.1.split(&['(', ')'][..]).collect();
+        structure.retain(|&x| x != "");
+        args = structure.get(1).unwrap().split(",").collect();
         // Splitting the commands and their aliases for easier matching
         let forward_commands: Vec<&str> = FORWARD.aliases.split(" ").collect();
         let rotate_right_commands: Vec<&str> = ROTATE_RIGHT.aliases.split(" ").collect();
@@ -152,12 +150,12 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         let penup_commands: Vec<&str> = PENUP.aliases.split(" ").collect();
         let pendown_commands: Vec<&str> = PENDOWN.aliases.split(" ").collect();
         let repeat_commands: Vec<&str> = REPEAT.aliases.split(" ").collect();
-        if structure.get(1).unwrap().contains(")") {
-            arg = structure.get(1).unwrap().split(")").collect();
-            args = arg.first().unwrap().split(",").collect();
-        }
+        //
+        //  Printing out the chopped up input (command block for the execution controls are not chopped up)
+        //
+        //println!("Structure: {:?}", structure);
         if forward_commands.contains(structure.first().unwrap()) {
-            let dist: i64 = arg.first().unwrap().parse().unwrap();
+            let dist: i64 = args.first().unwrap().parse().unwrap();
             let x_offset = dist as f32 * turtle.angle.sin();
             let y_offset = dist as f32 * turtle.angle.cos();
             if !turtle.pen_up {
@@ -168,11 +166,11 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
                 turtle.set_position(turtle.position.x - x_offset, turtle.position.y - y_offset);
             }
         } else if rotate_right_commands.contains(structure.first().unwrap()) {
-            let angle: f32 = arg.first().unwrap().parse().unwrap();
+            let angle: f32 = args.first().unwrap().parse().unwrap();
             let corrected_angle = angle * ((2_f32 * PI) / 360_f32);
             turtle.angle -= corrected_angle;
         } else if rotate_left_commands.contains(structure.first().unwrap()) {
-            let angle: f32 = arg.first().unwrap().parse().unwrap();
+            let angle: f32 = args.first().unwrap().parse().unwrap();
             let corrected_angle = angle * ((2_f32 * PI) / 360_f32);
             turtle.angle -= (2_f32 * PI) - corrected_angle;
         } else if pencolor_commands.contains(structure.first().unwrap()) {
@@ -185,7 +183,7 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             turtle.path_color.push(turtle.pencolor);
             turtle.path_width.push(turtle.penwidth);
         } else if penwidth_commands.contains(structure.first().unwrap()) {
-            let width: f32 = arg.first().unwrap().parse().unwrap();
+            let width: f32 = args.first().unwrap().parse().unwrap();
             turtle.penwidth = width;
             turtle.path.push(vec![]);
             turtle.path_color.push(turtle.pencolor);
@@ -197,17 +195,13 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             turtle.path.push(vec![]);
             turtle.path_color.push(turtle.pencolor);
             turtle.path_width.push(turtle.penwidth);
+        } else if repeat_commands.contains(structure.first().unwrap()) {
+            let from: usize = args.get(1).unwrap().parse().unwrap();
+            let to: usize = args.get(2).unwrap().parse().unwrap();
+            for i in from..to {
+                execute_command(command_blocks.to_string(), turtle);
+            }
         }
-        if structure.last().unwrap().contains("}") {
-            command_block = structure.last().unwrap().split("}").collect();
-            command_blocks = command_block.first().unwrap();
-        } /*if repeat_commands.contains(structure.first().unwrap()) {
-              let from: usize = args.get(1).unwrap().parse().unwrap();
-              let to: usize = args.get(2).unwrap().parse().unwrap();
-              for i in from..to {
-                  execute_command(command_blocks.to_string(), turtle);
-              }
-          }*/
     });
 }
 
