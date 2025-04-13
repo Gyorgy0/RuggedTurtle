@@ -34,21 +34,3 @@ impl Turtle {
         self.path = vec![];
     }
 }
-
-pub fn convert_vecs<T, U>(vector: Vec<T>) -> Vec<U>
-where
-    T: TryInto<U>,
-    <T as std::convert::TryInto<U>>::Error: std::fmt::Display,
-{
-    vector
-        .into_iter()
-        .map(|value_t| match TryInto::try_into(value_t) {
-            Ok(value_u) => value_u,
-            Err(why) => {
-                let t = std::any::type_name::<T>();
-                let u = std::any::type_name::<U>();
-                panic!("Error converting from {t} to {u}: {why}")
-            }
-        })
-        .collect()
-}

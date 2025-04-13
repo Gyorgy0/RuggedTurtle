@@ -1,19 +1,13 @@
-use std::{cmp::max, default, f32::consts::PI, ops::RangeInclusive, process::id, result};
+use std::{f32::consts::PI, ops::RangeInclusive};
 
 use egui::{
-    self, color_picker::Alpha, include_image, load::SizedTexture, menu, util::hash, CentralPanel,
-    Color32, Id, ImageSource, Modal, Rect, Stroke, TextureHandle, TextureOptions, TopBottomPanel,
-    Vec2, Visuals, Widget,
+    self, color_picker::Alpha, include_image, menu, CentralPanel, Color32, Rect, Stroke,
+    TopBottomPanel, Vec2, Visuals, Widget,
 };
-use egui_dialogs::{
-    dialog_window, Dialog, DialogContext, DialogDetails, Dialogs, StandardDialog, StandardReply,
-};
+use egui_dialogs::{dialog_window, Dialog, DialogContext, DialogDetails, Dialogs};
 use egui_extras::install_image_loaders;
 
-use crate::{
-    commands::execute_command,
-    turtle::{convert_vecs, Turtle},
-};
+use crate::{commands::execute_command, turtle::Turtle};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -85,26 +79,20 @@ impl eframe::App for RuggedTurtleApp<'_> {
         // Logic for showing the dialogs and handling the reply is there is one
         if let Some(res) = self.dialogs.show(ctx) {
             if res.is_reply_of(COLOR_PICKER_DIALOG_ID) {
-                match res.reply() {
-                    Ok(picked_color) => {
-                        self.turtle.pencolor = picked_color;
-                        self.turtle.path.push(vec![]);
-                        self.turtle.path_color.push(self.turtle.pencolor);
-                        self.turtle.path_width.push(self.turtle.penwidth);
-                        execute_command(self.input.clone(), &mut self.turtle);
-                    }
-                    _ => {}
+                if let Ok(picked_color) = res.reply() {
+                    self.turtle.pencolor = picked_color;
+                    self.turtle.path.push(vec![]);
+                    self.turtle.path_color.push(self.turtle.pencolor);
+                    self.turtle.path_width.push(self.turtle.penwidth);
+                    execute_command(self.input.clone(), &mut self.turtle);
                 }
             } else if res.is_reply_of(WIDTH_INPUT_DIALOG_ID) {
-                match res.reply() {
-                    Ok(new_width) => {
-                        self.turtle.penwidth = new_width;
-                        self.turtle.path.push(vec![]);
-                        self.turtle.path_color.push(self.turtle.pencolor);
-                        self.turtle.path_width.push(self.turtle.penwidth);
-                        execute_command(self.input.clone(), &mut self.turtle);
-                    }
-                    _ => {}
+                if let Ok(new_width) = res.reply() {
+                    self.turtle.penwidth = new_width;
+                    self.turtle.path.push(vec![]);
+                    self.turtle.path_color.push(self.turtle.pencolor);
+                    self.turtle.path_width.push(self.turtle.penwidth);
+                    execute_command(self.input.clone(), &mut self.turtle);
                 }
             }
         }
@@ -128,14 +116,13 @@ impl eframe::App for RuggedTurtleApp<'_> {
             self.turtle.path_width.push(self.turtle.penwidth);
             ctx.forget_image(turtle_icon.uri().unwrap());
         }
-        CentralPanel::default().show(&ctx, |ui| {
+        CentralPanel::default().show(ctx, |ui| {
             // Painting the lines drawn by the turtle
             for i in 0..self.turtle.path_color.len() {
                 ui.painter().line(
                     self.turtle
                         .path
                         .get(i)
-                        .clone()
                         .unwrap_or(&vec![self.turtle.position])
                         .to_vec(),
                     Stroke::new(
@@ -151,7 +138,7 @@ impl eframe::App for RuggedTurtleApp<'_> {
                 .paint_at(
                     ui,
                     Rect::from_center_size(
-                        self.turtle.position.into(),
+                        self.turtle.position,
                         Vec2::new(self.turtle.width, self.turtle.height),
                     ),
                 );
@@ -279,6 +266,41 @@ impl Dialog<f32> for WidthInputDialog {
                 }
                 if ui.button("Mégse").clicked() {
                     res = Some(self.original_width);
+                }
+            });
+        });
+
+        res
+    }
+}
+
+pub struct NewCanvasDialog {
+    pub size: Vec2,
+    pub original_size: Vec2,
+}
+
+impl NewCanvasDialog {
+    pub fn new(size: Vec2) -> Self {
+        Self {
+            size,
+            original_size: size,
+        }
+    }
+}
+impl Dialog<Vec2> for NewCanvasDialog {
+    fn show(&mut self, ctx: &egui::Context, dctx: &DialogContext) -> Option<Vec2> {
+        // Return None if the user hasn't selected something
+        let mut res = None;
+
+        // Draw the dialog ui
+        dialog_window(ctx, dctx, "Új vászon létrehozása...").show(ctx, |ui| {
+            ui.label("Kérlek, add meg az új vászon méretét: ");
+            ui.horizontal(|ui| {
+                if ui.button("Kész").clicked() {
+                    res = Some(self.size);
+                }
+                if ui.button("Mégse").clicked() {
+                    res = Some(self.original_size);
                 }
             });
         });
