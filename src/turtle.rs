@@ -24,13 +24,4 @@ impl Turtle {
         self.width = width;
         self.height = height;
     }
-    pub fn set_icon(&mut self, path_to_img: &str) {
-        self.icon_path = path_to_img.to_string();
-    }
-    pub fn get_icon(&mut self) -> &str {
-        &self.icon_path
-    }
-    pub fn clear_all(&mut self) {
-        self.path = vec![];
-    }
 }
