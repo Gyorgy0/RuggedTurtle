@@ -3,19 +3,35 @@ use std::{f32::consts::PI, num::ParseIntError, vec};
 use egui::Color32;
 use serde::{Deserialize, Serialize};
 
-use crate::{parsing::trim_whitespace, turtle::Turtle};
+use crate::{arithmetic::parse_number_value, parsing::trim_whitespace, turtle::Turtle};
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-enum VariableTypes {
+pub enum VariableTypes {
     boolean { value: bool },
     number { value: f64 },
 }
 
+impl VariableTypes {
+    pub fn get_value(&self) -> f64 {
+        let mut val = 0_f64;
+        if let VariableTypes::number { value } = self {
+            val = *value;
+        }
+        val
+    }
+    pub fn get_boolean(&self) -> bool {
+        let mut val = false;
+        if let VariableTypes::boolean { value } = self {
+            val = *value;
+        }
+        val
+    }
+}
+
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Variable {
-    name: String,
-    raw_value: String,
-    variable_type: VariableTypes,
-    writable: bool,
+    pub raw_value: String,
+    pub variable_type: VariableTypes,
+    pub writable: bool,
 }
 
 #[derive(Default, Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -56,6 +72,16 @@ const PENUP: Command = Command {
 
 const PENDOWN: Command = Command {
     aliases: "tl tollle pd pendown down",
+    //documentation:todo!(),
+};
+
+const PRINTVAL: Command = Command {
+    aliases: "kier kiertekeles kiszamolas eval calc calculate avaluate",
+    //documentation:todo!(),
+};
+
+const PRINTRAW: Command = Command {
+    aliases: "ki kiir kiiratas print",
     //documentation:todo!(),
 };
 
@@ -133,7 +159,29 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         }
         structure = command.1.split(&['(', ')'][..]).collect();
         structure.retain(|&x| !x.is_empty());
-        args = structure.get(1).unwrap().split(",").collect();
+        if !structure.first().unwrap().contains('=') {
+            args = structure.get(1).unwrap().split(",").collect();
+        }
+        // This is where we declare the variable
+        // <var>=<value> - value can be a boolean or a number
+        if structure.first().unwrap().contains('=') {
+            let variable: Vec<&str> = structure.first().unwrap().split('=').collect();
+            let new_var = Variable {
+                raw_value: variable.get(1).unwrap().to_string(),
+                variable_type: VariableTypes::number {
+                    value: parse_number_value(
+                        variable.get(1).unwrap().to_string(),
+                        &mut turtle.variables,
+                    ),
+                },
+                writable: true,
+            };
+            //println!("{:?}", &new_var);
+            turtle
+                .variables
+                .insert(variable.first().unwrap().to_string(), new_var);
+            return;
+        }
         // Splitting the commands and their aliases for easier matching
         let forward_commands: Vec<&str> = FORWARD.aliases.split(" ").collect();
         let rotate_right_commands: Vec<&str> = ROTATE_RIGHT.aliases.split(" ").collect();
@@ -142,6 +190,8 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         let penwidth_commands: Vec<&str> = PENWIDTH.aliases.split(" ").collect();
         let penup_commands: Vec<&str> = PENUP.aliases.split(" ").collect();
         let pendown_commands: Vec<&str> = PENDOWN.aliases.split(" ").collect();
+        let printval_commands: Vec<&str> = PRINTVAL.aliases.split(" ").collect();
+        let printraw_commands: Vec<&str> = PRINTRAW.aliases.split(" ").collect();
         let repeat_commands: Vec<&str> = REPEAT.aliases.split(" ").collect();
         //
         //  Printing out the chopped up input (command block for the execution controls are not chopped up)
@@ -199,9 +249,41 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             turtle.path.push(vec![]);
             turtle.path_color.push(turtle.pencolor);
             turtle.path_width.push(turtle.penwidth);
+        } else if printval_commands.contains(structure.first().unwrap()) {
+            // Command for printing out the variables numerical or booleanic value
+            let searched_var_result: Option<&Variable> =
+                turtle.variables.get(*args.first().unwrap());
+            let searched_var: &Variable = match searched_var_result {
+                Some(result) => result,
+                None => {
+                    println!("Nem létezik a \"{}\" változó!", command.1);
+                    return;
+                }
+            };
+            println!(
+                "{} = {}",
+                args.first().unwrap(),
+                searched_var.variable_type.get_value()
+            );
+            // Printing out all the variables
+            //println!("{:?}", turtle.variables.iter());
+            return;
+        } else if printraw_commands.contains(structure.first().unwrap()) {
+            // Command for printing out the variables raw value
+            let searched_var_result: Option<&Variable> =
+                turtle.variables.get(*args.first().unwrap());
+            let searched_var: &Variable = match searched_var_result {
+                Some(result) => result,
+                None => {
+                    println!("Nem létezik a \"{}\" változó!", command.1);
+                    return;
+                }
+            };
+            println!("{} = {}", args.first().unwrap(), searched_var.raw_value);
+            return;
         } else if repeat_commands.contains(structure.first().unwrap()) {
-            let from: usize = args.get(1).unwrap().parse().unwrap();
-            let to: usize = args.get(2).unwrap().parse().unwrap();
+            let from: isize = args.get(1).unwrap().parse().unwrap();
+            let to: isize = args.get(2).unwrap().parse().unwrap();
             //
             //  Printing the command block that is passed to the next iteration
             //

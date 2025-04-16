@@ -1,5 +1,7 @@
-use egui::{Color32, Pos2};
+use egui::{ahash::HashMap, Color32, Pos2};
 use serde::{Deserialize, Serialize};
+
+use crate::commands::Variable;
 
 #[derive(Default, Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Turtle {
@@ -14,6 +16,7 @@ pub struct Turtle {
     pub penwidth: f32,
     pub path_width: Vec<f32>,
     pub pen_up: bool,
+    pub variables: HashMap<String, Variable>,
 }
 
 impl Turtle {
