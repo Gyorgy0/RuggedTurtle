@@ -1,3 +1,5 @@
+# Rugged turtle
+
 This is my first interpreter written in Rust. The program let's you control a turtle with specific commands. The program primarily is for teaching programming,
 by visualizing instruction graphically.
 
