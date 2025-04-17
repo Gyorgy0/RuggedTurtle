@@ -261,7 +261,7 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
                         },
                         writable: true,
                     };
-                    if turtle
+                    if !turtle
                         .variables
                         .contains_key(variable.first().unwrap().as_str())
                     {

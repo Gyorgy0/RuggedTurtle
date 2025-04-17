@@ -38,61 +38,79 @@ pub fn parse_number_value(input: String, turtle: &mut Turtle) -> f64 {
     //
     // Printing out tokens and operators
     //
-    //println!("\nTokens{:?}\nOperators: {:?}", tokens, operators);
-    let mut result: f64 = parse_to_number(tokens.first().unwrap().clone(), turtle);
-    (0..operators.len()).for_each(|op| {
+    // println!("\nTokens{:?}\nOperators: {:?}", tokens, operators);
+    for op in 0..operators.len() {
         // Multiplication
+        let mut result = 0_f64;
         if operators[op] == '*' {
             let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
-            let nplusth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
+            let nplusth_num = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
             result = nth_num * nplusth_num;
-            tokens[op] = result.to_string();
-            tokens.remove(op + 1);
-            operators.remove(op);
+            tokens[op + 1] = result.to_string();
+            tokens[op] = '#'.into();
+            operators[op] = '#';
         }
-    });
-    (0..operators.len()).for_each(|op| {
+    }
+    tokens.retain(|t| t != "#");
+    operators.retain(|&o| o != '#');
+    for op in 0..operators.len() {
         // Float division
+        let mut result = 0_f64;
         if operators[op] == '/' {
             let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
-            let nplusth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
+            let nplusth_num = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
             result = nth_num / nplusth_num;
-            tokens[op] = result.to_string();
-            tokens.remove(op + 1);
-            operators.remove(op);
+            tokens[op + 1] = result.to_string();
+            tokens[op] = '#'.into();
+            operators[op] = '#';
         }
-    });
-    (0..operators.len()).for_each(|op| {
+    }
+    tokens.retain(|t| t != "#");
+    operators.retain(|&o| o != '#');
+    for op in 0..operators.len() {
         // Integer division
+        let mut result = 0_f64;
         if operators[op] == ':' {
             let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
-            let nplusth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
+            let nplusth_num = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
             result = (nth_num / nplusth_num).floor();
-            tokens[op] = result.to_string();
-            tokens.remove(op + 1);
-            operators.remove(op);
+            tokens[op + 1] = result.to_string();
+            tokens[op] = '#'.into();
+            operators[op] = '#';
         }
-    });
-    (0..operators.len()).for_each(|op| {
+    }
+    tokens.retain(|t| t != "#");
+    operators.retain(|&o| o != '#');
+    for op in 0..operators.len() {
         // Remainder
+        let mut result = 0_f64;
         if operators[op] == '%' {
             let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
-            let nplusth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
+            let nplusth_num = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
             result = nth_num % nplusth_num;
-            tokens[op] = result.to_string();
-            tokens.remove(op + 1);
-            operators.remove(op);
+            tokens[op + 1] = result.to_string();
+            tokens[op] = '#'.into();
+            operators[op] = '#';
         }
-    });
-    operators.iter().enumerate().for_each(|op| {
-        if *op.1 == '+' {
-            let new_number = parse_to_number(tokens.get(op.0 + 1).unwrap().clone(), turtle);
+    }
+    tokens.retain(|t| t != "#");
+    operators.retain(|&o| o != '#');
+
+    // Additions and subtraction
+    let mut result: f64 = parse_to_number(tokens.first().unwrap().clone(), turtle);
+    for op in 0..operators.len() {
+        if operators[op] == '+' {
+            let new_number = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
             result += new_number;
-        } else if *op.1 == '-' {
-            let new_number = parse_to_number(tokens.get(op.0 + 1).unwrap().clone(), turtle);
+        } else if operators[op] == '-' {
+            let new_number = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
             result -= new_number;
         }
-    });
+    }
+    //
+    // Printing out tokens and operators
+    //
+    println!("\nTokens{:?}\nOperators: {:?}", tokens, operators);
     result
 }
 
@@ -112,9 +130,9 @@ fn parse_to_number(raw_number: String, turtle: &mut Turtle) -> f64 {
         let parenthesis_begin = raw_number.split_at(parenthesis_begin_index.first().unwrap().0 + 1);
         let parenthesis_begin_remainder = parenthesis_begin.1;
         let parenthesis_end_index: Vec<_> =
-            parenthesis_begin_remainder.match_indices("}").collect();
+            parenthesis_begin_remainder.match_indices(")").collect();
         let parenthesis_end =
-            parenthesis_begin_remainder.split_at(parenthesis_end_index.last().unwrap().0 + 1);
+            parenthesis_begin_remainder.split_at(parenthesis_end_index.last().unwrap().0);
         let final_raw_number = parenthesis_end.0;
         value = parse_number_value(final_raw_number.to_string(), turtle);
     } else if turtle.variables.contains_key(&raw_number) {
