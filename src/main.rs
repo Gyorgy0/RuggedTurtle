@@ -5,14 +5,19 @@ use rugged_turtle::RuggedTurtleApp;
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
-    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+    use std::sync::Arc;
 
-    let native_options = eframe::NativeOptions {
+    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+    let icon = eframe::icon_data::from_png_bytes(include_bytes!("assets/rugged_turtle.png"))
+        .expect("The icon data must be valid");
+    let mut native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([400.0, 300.0])
-            .with_min_inner_size([300.0, 220.0]),
+            .with_min_inner_size([300.0, 220.0])
+            .with_icon(icon.clone()),
         ..Default::default()
     };
+    native_options.viewport.icon = Some(Arc::new(icon));
     eframe::run_native(
         "Rugged turtle",
         native_options,

@@ -1,9 +1,8 @@
 use std::{f32::consts::PI, ops::RangeInclusive};
 
 use egui::{
-    self, accesskit::VerticalOffset, color_picker::Alpha, include_image, menu, Align2,
-    CentralPanel, Color32, Rect, ScrollArea, Sense, Stroke, TextStyle, TopBottomPanel, Ui, Vec2,
-    Visuals, Widget,
+    self, color_picker::Alpha, include_image, menu, Align2, CentralPanel, Color32, Rect,
+    ScrollArea, Shadow, Stroke, TextStyle, TopBottomPanel, Vec2, Visuals, Widget,
 };
 use egui_dialogs::{dialog_window, Dialog, DialogContext, DialogDetails, Dialogs};
 use egui_extras::install_image_loaders;
@@ -24,7 +23,8 @@ pub struct RuggedTurtleApp<'a> {
     dark_mode: bool,
     #[serde(skip)]
     dialogs: Dialogs<'a>,
-    colordialog: bool,
+    #[serde(skip)]
+    dialogopen: bool,
 }
 
 impl Default for RuggedTurtleApp<'_> {
@@ -37,12 +37,12 @@ impl Default for RuggedTurtleApp<'_> {
             canvas: (640, 480),
             dark_mode: false,
             dialogs: Dialogs::default(),
-            colordialog: false,
+            dialogopen: false,
         }
     }
 }
 
-impl<'a> RuggedTurtleApp<'_> {
+impl RuggedTurtleApp<'_> {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
@@ -51,6 +51,8 @@ impl<'a> RuggedTurtleApp<'_> {
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
         cc.egui_ctx.set_visuals(Visuals::light());
+        cc.egui_ctx
+            .style_mut(|style| style.visuals.window_shadow = Shadow::NONE);
         install_image_loaders(&cc.egui_ctx);
         let mut application: RuggedTurtleApp = Default::default();
         if let Some(storage) = cc.storage {
@@ -85,7 +87,7 @@ impl eframe::App for RuggedTurtleApp<'_> {
                     self.turtle.path.push(vec![]);
                     self.turtle.path_color.push(self.turtle.pencolor);
                     self.turtle.path_width.push(self.turtle.penwidth);
-                    execute_command(self.input.clone(), &mut self.turtle);
+                    self.dialogopen = false;
                 }
             } else if res.is_reply_of(WIDTH_INPUT_DIALOG_ID) {
                 if let Ok(new_width) = res.reply() {
@@ -93,7 +95,7 @@ impl eframe::App for RuggedTurtleApp<'_> {
                     self.turtle.path.push(vec![]);
                     self.turtle.path_color.push(self.turtle.pencolor);
                     self.turtle.path_width.push(self.turtle.penwidth);
-                    execute_command(self.input.clone(), &mut self.turtle);
+                    self.dialogopen = false;
                 }
             }
         }
@@ -102,6 +104,10 @@ impl eframe::App for RuggedTurtleApp<'_> {
         let mut bottom_size = 0_f32;
         let turtle_icon: egui::ImageSource = include_image!("assets/rugged_turtle.svg");
         if self.turtle == Turtle::default() {
+            self.turtle.command_history.clear();
+            self.turtle
+                .command_history
+                .push("A parancsok listájáért írd be a \"segitseg\" parancsot!".to_string());
             let height = ctx.screen_rect().width().max(ctx.screen_rect().height()) * 0.030;
             self.turtle.set_size(0.75 * height, height);
             self.turtle
@@ -126,11 +132,24 @@ impl eframe::App for RuggedTurtleApp<'_> {
                     .background_color(Color32::KHAKI)
                     .text_color(Color32::BLACK)
                     .ui(ui);
-                if ui.button("Futtatás").clicked() {
-                    DialogDetails::new(WidthInputDialog::new(self.turtle.penwidth))
-                        .with_id(WIDTH_INPUT_DIALOG_ID)
-                        .show(&mut self.dialogs);
-                }
+                ui.horizontal(|ui| {
+                    if ui.button("Futtatás").clicked() {
+                        self.turtle.variables.clear();
+                        execute_command(self.input.clone(), &mut self.turtle);
+                    }
+                    if ui.button("Tollszín módosítása...").clicked() {
+                        DialogDetails::new(ColorPickerDialog::new(self.turtle.pencolor))
+                            .with_id(COLOR_PICKER_DIALOG_ID)
+                            .show(&mut self.dialogs);
+                        self.dialogopen = true;
+                    }
+                    if ui.button("Toll vastagsága...").clicked() {
+                        DialogDetails::new(WidthInputDialog::new(self.turtle.penwidth))
+                            .with_id(WIDTH_INPUT_DIALOG_ID)
+                            .show(&mut self.dialogs);
+                        self.dialogopen = true;
+                    }
+                });
             });
         } else if self.dark_mode {
             TopBottomPanel::bottom("Console").show(ctx, |ui| {
@@ -138,11 +157,24 @@ impl eframe::App for RuggedTurtleApp<'_> {
                 egui::widgets::TextEdit::singleline(&mut self.input)
                     .desired_width(f32::INFINITY)
                     .ui(ui);
-                if ui.button("Futtatás").clicked() {
-                    DialogDetails::new(ColorPickerDialog::new(self.turtle.pencolor))
-                        .with_id(COLOR_PICKER_DIALOG_ID)
-                        .show(&mut self.dialogs);
-                }
+                ui.horizontal(|ui| {
+                    if ui.button("Futtatás").clicked() {
+                        self.turtle.variables.clear();
+                        execute_command(self.input.clone(), &mut self.turtle);
+                    }
+                    if ui.button("Tollszín módosítása...").clicked() {
+                        DialogDetails::new(ColorPickerDialog::new(self.turtle.pencolor))
+                            .with_id(COLOR_PICKER_DIALOG_ID)
+                            .show(&mut self.dialogs);
+                        self.dialogopen = true;
+                    }
+                    if ui.button("Toll vastagsága...").clicked() {
+                        DialogDetails::new(WidthInputDialog::new(self.turtle.penwidth))
+                            .with_id(WIDTH_INPUT_DIALOG_ID)
+                            .show(&mut self.dialogs);
+                        self.dialogopen = true;
+                    }
+                });
             });
         }
         //self.dialogs.show(ctx);
@@ -152,10 +184,10 @@ impl eframe::App for RuggedTurtleApp<'_> {
                     if ui.button("Alaphelyzet").clicked() {
                         self.turtle = Turtle::default();
                     }
-                    if ui.button("Új vászon").clicked() {
+                    /*if ui.button("Új vászon").clicked() {
                         self.turtle = Turtle::default();
                     }
-                    /*if ui.button("Mentés").clicked() {
+                    if ui.button("Mentés").clicked() {
                         self.input = "Fájl mentve...".to_string();
                     }
                     if ui.button("Szöveg szerkesztése").clicked() && !self.opened_editor {
@@ -175,60 +207,68 @@ impl eframe::App for RuggedTurtleApp<'_> {
             });
         });
         CentralPanel::default().show(ctx, |ui| {
-            egui::containers::Window::new(" - Parancsok üzenetei - ")
-                .anchor(
-                    Align2::CENTER_BOTTOM,
-                    Vec2::new(0.0, -(bottom_size + 2_f32)),
-                )
-                .movable(false)
-                .resizable([false, true])
-                .min_width(ctx.screen_rect().x_range().max)
-                .show(ctx, |ui| {
-                    let text_style = TextStyle::Monospace;
-                    let row_height = ui.text_style_height(&text_style);
-                    ScrollArea::vertical()
-                        .auto_shrink(false)
-                        .scroll_bar_visibility(
-                            egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
-                        )
-                        .stick_to_bottom(true)
-                        .show_rows(
-                            ui,
-                            row_height,
-                            self.turtle.command_history.len(),
-                            |ui, row_range| {
-                                for row in row_range {
-                                    ui.label(" ".to_string() + &self.turtle.command_history[row]);
-                                }
-                            },
-                        );
-                });
-            ctx.request_repaint();
-            // Painting the lines drawn by the turtle
-            for i in 0..self.turtle.path_color.len() {
-                ui.painter().line(
-                    self.turtle
-                        .path
-                        .get(i)
-                        .unwrap_or(&vec![self.turtle.position])
-                        .to_vec(),
-                    Stroke::new(
-                        *self.turtle.path_width.get(i).unwrap(),
-                        *self.turtle.path_color.get(i).unwrap(),
-                    ),
-                );
+            if !self.dialogopen {
+                ctx.style_mut(|style| style.visuals.window_shadow = Shadow::NONE);
+                egui::containers::Window::new(" - Parancsok üzenetei - ")
+                    .anchor(
+                        Align2::CENTER_BOTTOM,
+                        Vec2::new(0.0, -(bottom_size + 2_f32)),
+                    )
+                    .movable(false)
+                    .constrain(true)
+                    .resizable([false, true])
+                    .max_height(ui.max_rect().x_range().max / 3.0)
+                    .min_width(ctx.screen_rect().x_range().max)
+                    .show(ctx, |ui| {
+                        let text_style = TextStyle::Monospace;
+                        let row_height = ui.text_style_height(&text_style);
+                        ScrollArea::vertical()
+                            .auto_shrink(false)
+                            .scroll_bar_visibility(
+                                egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                            )
+                            .stick_to_bottom(true)
+                            .show_rows(
+                                ui,
+                                row_height,
+                                self.turtle.command_history.len(),
+                                |ui, row_range| {
+                                    for row in row_range {
+                                        ui.label(
+                                            " ".to_string() + &self.turtle.command_history[row],
+                                        );
+                                    }
+                                },
+                            );
+                    });
             }
-            // Plus function: Implementing customizable turtle images
-            //self.turtle.set_icon(turtle_icon.uri().unwrap());
-            egui::widgets::Image::new(turtle_icon.clone())
-                .rotate((2_f32 * PI) - self.turtle.angle, Vec2::splat(0.5))
-                .paint_at(
-                    ui,
-                    Rect::from_center_size(
-                        self.turtle.position,
-                        Vec2::new(self.turtle.width, self.turtle.height),
-                    ),
-                );
+            ScrollArea::new([true, true]).show(ui, |ui| {
+                // Painting the lines drawn by the turtle
+                for i in 0..self.turtle.path_color.len() {
+                    ui.painter().line(
+                        self.turtle
+                            .path
+                            .get(i)
+                            .unwrap_or(&vec![self.turtle.position])
+                            .to_vec(),
+                        Stroke::new(
+                            *self.turtle.path_width.get(i).unwrap(),
+                            *self.turtle.path_color.get(i).unwrap(),
+                        ),
+                    );
+                }
+                // Plus function: Implementing customizable turtle images
+                //self.turtle.set_icon(turtle_icon.uri().unwrap());
+                egui::widgets::Image::new(turtle_icon.clone())
+                    .rotate((2_f32 * PI) - self.turtle.angle, Vec2::splat(0.5))
+                    .paint_at(
+                        ui,
+                        Rect::from_center_size(
+                            self.turtle.position,
+                            Vec2::new(self.turtle.width, self.turtle.height),
+                        ),
+                    );
+            });
         });
     }
 }
@@ -264,6 +304,18 @@ impl Dialog<Color32> for ColorPickerDialog {
                     res = Some(self.picked_color);
                 }
                 if ui.button("Mégse").clicked() {
+                    res = Some(self.original_color);
+                }
+                if ui.button("Szín kimásolása...").clicked() {
+                    ui.output_mut(|out| {
+                        out.copied_text = format!(
+                            "{}, {}, {}, {}",
+                            self.picked_color.r(),
+                            self.picked_color.g(),
+                            self.picked_color.b(),
+                            self.picked_color.a()
+                        )
+                    });
                     res = Some(self.original_color);
                 }
             });
@@ -341,35 +393,5 @@ impl Dialog<Vec2> for NewCanvasDialog {
         });
 
         res
-    }
-}
-
-#[derive(Default, PartialEq)]
-struct ScrollStickTo {
-    n_items: usize,
-}
-
-impl ScrollStickTo {
-    fn ui(&mut self, ui: &mut Ui) {
-        ui.label("Rows enter from the bottom, we want the scroll handle to start and stay at bottom unless moved");
-
-        ui.add_space(4.0);
-
-        let text_style = TextStyle::Body;
-        let row_height = ui.text_style_height(&text_style);
-        ScrollArea::vertical().stick_to_bottom(true).show_rows(
-            ui,
-            row_height,
-            self.n_items,
-            |ui, row_range| {
-                for row in row_range {
-                    let text = format!("This is row {}", row + 1);
-                    ui.label(text);
-                }
-            },
-        );
-
-        self.n_items += 1;
-        ui.ctx().request_repaint();
     }
 }

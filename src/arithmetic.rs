@@ -1,8 +1,6 @@
-use egui::ahash::HashMap;
+use crate::{parsing::trim_whitespace, turtle::Turtle};
 
-use crate::{commands::Variable, parsing::trim_whitespace};
-
-pub fn parse_number_value(input: String, variables: &mut HashMap<String, Variable>) -> f64 {
+pub fn parse_number_value(input: String, turtle: &mut Turtle) -> f64 {
     // Removes whitespaces
     let mut trimmed_input = trim_whitespace(input.as_str());
     trimmed_input.push('#');
@@ -41,80 +39,103 @@ pub fn parse_number_value(input: String, variables: &mut HashMap<String, Variabl
     // Printing out tokens and operators
     //
     //println!("\nTokens{:?}\nOperators: {:?}", tokens, operators);
-    let mut result: f64 = parse_to_number(tokens.first().unwrap().clone(), variables);
-    for i in 0..operators.len() {
+    let mut result: f64 = parse_to_number(tokens.first().unwrap().clone(), turtle);
+    (0..operators.len()).for_each(|op| {
         // Multiplication
-        if operators[i] == '*' {
-            let nth_num = parse_to_number(tokens.get(i).unwrap().clone(), variables);
-            let nplusth_num = parse_to_number(tokens.get(i + 1).unwrap().clone(), variables);
+        if operators[op] == '*' {
+            let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
+            let nplusth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
             result = nth_num * nplusth_num;
-            tokens[i] = result.to_string();
-            tokens.remove(i + 1);
-            operators.remove(i);
+            tokens[op] = result.to_string();
+            tokens.remove(op + 1);
+            operators.remove(op);
         }
-    }
-    for i in 0..operators.len() {
+    });
+    (0..operators.len()).for_each(|op| {
         // Float division
-        if operators[i] == '/' {
-            let new_number = parse_to_number(tokens.get(i + 1).unwrap().clone(), variables);
-            let nth_num = parse_to_number(tokens.get(i).unwrap().clone(), variables);
-            let nplusth_num = parse_to_number(tokens.get(i + 1).unwrap().clone(), variables);
+        if operators[op] == '/' {
+            let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
+            let nplusth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
             result = nth_num / nplusth_num;
+            tokens[op] = result.to_string();
+            tokens.remove(op + 1);
+            operators.remove(op);
         }
-    }
-    for i in 0..operators.len() {
+    });
+    (0..operators.len()).for_each(|op| {
         // Integer division
-        if operators[i] == ':' {
-            let nth_num = parse_to_number(tokens.get(i).unwrap().clone(), variables);
-            let nplusth_num = parse_to_number(tokens.get(i + 1).unwrap().clone(), variables);
+        if operators[op] == ':' {
+            let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
+            let nplusth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
             result = (nth_num / nplusth_num).floor();
+            tokens[op] = result.to_string();
+            tokens.remove(op + 1);
+            operators.remove(op);
         }
-    }
-    for i in 0..operators.len() {
+    });
+    (0..operators.len()).for_each(|op| {
         // Remainder
-        if operators[i] == '%' {
-            let nth_num = parse_to_number(tokens.get(i).unwrap().clone(), variables);
-            let nplusth_num = parse_to_number(tokens.get(i + 1).unwrap().clone(), variables);
+        if operators[op] == '%' {
+            let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
+            let nplusth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
             result = nth_num % nplusth_num;
+            tokens[op] = result.to_string();
+            tokens.remove(op + 1);
+            operators.remove(op);
         }
-    }
-    for i in 0..operators.len() {
-        if operators[i] == '+' {
-            let new_number = parse_to_number(tokens.get(i + 1).unwrap().clone(), variables);
+    });
+    operators.iter().enumerate().for_each(|op| {
+        if *op.1 == '+' {
+            let new_number = parse_to_number(tokens.get(op.0 + 1).unwrap().clone(), turtle);
             result += new_number;
-        } else if operators[i] == '-' {
-            let new_number = parse_to_number(tokens.get(i + 1).unwrap().clone(), variables);
+        } else if *op.1 == '-' {
+            let new_number = parse_to_number(tokens.get(op.0 + 1).unwrap().clone(), turtle);
             result -= new_number;
         }
-    }
+    });
     result
 }
 
-fn parse_to_number(raw_number: String, variables: &mut HashMap<String, Variable>) -> f64 {
+fn parse_to_number(raw_number: String, turtle: &mut Turtle) -> f64 {
     let mut value = 0_f64;
     if raw_number.contains(&['(', ')'][..]) {
-        // Searching for the beginning of the parenthesis
+        /*// Searching for the beginning of the parenthesis
         let parenthesis_begin_index: Vec<_> = raw_number.match_indices("(").collect();
         // We split it off the string after the "("
-        let new_raw_number = raw_number
-            .split_at(parenthesis_begin_index.first().unwrap().0 + 1)
-            .1
-            .to_string();
+        let new_raw_number = raw_number.split_at(parenthesis_begin_index.first().unwrap().0 + 1);
         // We search for the last ")"" parenthesis and we split it off the string
-        let parenthesis_end_index: Vec<_> = raw_number.match_indices(")").collect();
+        let parenthesis_end_index: Vec<_> = new_raw_number.1.match_indices(")").collect();
         let final_raw_number = new_raw_number
-            .split_at(parenthesis_end_index.last().unwrap().0 - 1)
-            .0
-            .to_string();
-        value = parse_number_value(final_raw_number, variables);
-    } else if variables.contains_key(&raw_number) {
-        value = variables
+            .1
+            .split_at(parenthesis_end_index.last().unwrap().0);*/
+        let parenthesis_begin_index: Vec<_> = raw_number.match_indices("(").collect();
+        let parenthesis_begin = raw_number.split_at(parenthesis_begin_index.first().unwrap().0 + 1);
+        let parenthesis_begin_remainder = parenthesis_begin.1;
+        let parenthesis_end_index: Vec<_> =
+            parenthesis_begin_remainder.match_indices("}").collect();
+        let parenthesis_end =
+            parenthesis_begin_remainder.split_at(parenthesis_end_index.last().unwrap().0 + 1);
+        let final_raw_number = parenthesis_end.0;
+        value = parse_number_value(final_raw_number.to_string(), turtle);
+    } else if turtle.variables.contains_key(&raw_number) {
+        value = turtle
+            .variables
             .get(&raw_number)
             .unwrap()
             .variable_type
             .get_value();
     } else {
-        value = raw_number.parse().unwrap();
+        let value_result: Result<f64, _> = raw_number.parse();
+        value = match value_result {
+            Ok(val) => val,
+            Err(_e) => {
+                turtle.command_history.push(format!(
+                    "A megadott bemenetet ({}) nem lehet kiszámolni!",
+                    raw_number
+                ));
+                return f64::NAN;
+            }
+        }
     }
     value
 }

@@ -3,6 +3,10 @@ name = "rugged_turtle"
 version = "1.0.0"
 authors = ["Juraj Lukovics"]
 edition = "2021"
+build = "build.rs"
+
+[build-dependencies]
+winres = "0.1.12"
 
 [dependencies]
 egui = "0.31.1"
@@ -12,7 +16,7 @@ log = "0.4"
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }
 egui_plot = "0.32.1"
-rand = "0.9.0"
+rand = "0.9.1"
 getrandom = { version = "0.3.2", features = ["wasm_js"] }
 egui_extras = { version = "0.31.1", features = ["all_loaders", "file", "http", "image"] }
 image = "0.25.6"

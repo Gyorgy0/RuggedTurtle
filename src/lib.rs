@@ -1,8 +1,8 @@
 mod app;
 mod arithmetic;
-mod boolean;
+//mod boolean;
 mod commands;
-mod documentation;
+//mod documentation;
 mod parsing;
 mod turtle;
 pub use app::RuggedTurtleApp;
