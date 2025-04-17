@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, num::ParseIntError, vec};
+use std::{f32::consts::PI, fmt::format, num::ParseIntError, vec};
 
 use egui::Color32;
 use serde::{Deserialize, Serialize};
@@ -85,6 +85,11 @@ const PRINTRAW: Command = Command {
     //documentation:todo!(),
 };
 
+const CLEAR: Command = Command {
+    aliases: "trl torol clr clear",
+    //documentation:todo!(),
+};
+
 const REPEAT: Command = Command {
     aliases: "i ism ismetles r rep repeat for",
     //documentation:todo!(),
@@ -164,6 +169,9 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         }
         // This is where we declare the variable
         // <var>=<value> - value can be a boolean or a number
+        //
+        // ERROR: CAN'T MAKE NEW VARIABLE
+        //
         if structure.first().unwrap().contains('=') {
             let variable: Vec<&str> = structure.first().unwrap().split('=').collect();
             let new_var = Variable {
@@ -177,9 +185,16 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
                 writable: true,
             };
             //println!("{:?}", &new_var);
-            turtle
+            if turtle
                 .variables
-                .insert(variable.first().unwrap().to_string(), new_var);
+                .get(&variable.first().unwrap().to_string())
+                .unwrap()
+                .writable
+            {
+                turtle
+                    .variables
+                    .insert(variable.first().unwrap().to_string(), new_var);
+            }
             return;
         }
         // Splitting the commands and their aliases for easier matching
@@ -192,24 +207,14 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         let pendown_commands: Vec<&str> = PENDOWN.aliases.split(" ").collect();
         let printval_commands: Vec<&str> = PRINTVAL.aliases.split(" ").collect();
         let printraw_commands: Vec<&str> = PRINTRAW.aliases.split(" ").collect();
+        let clear_commands: Vec<&str> = CLEAR.aliases.split(" ").collect();
         let repeat_commands: Vec<&str> = REPEAT.aliases.split(" ").collect();
         //
         //  Printing out the chopped up input (command block for the execution controls are not chopped up)
         //
         //println!("Structure: {:?}", structure);
         if forward_commands.contains(structure.first().unwrap()) {
-            let dist_result: Result<i64, ParseIntError> = args.first().unwrap().parse();
-            let dist_inner: &&str = args.first().unwrap();
-            let dist = match dist_result {
-                Ok(distance) => distance,
-                Err(_e) => {
-                    println!(
-                        "Sajnos a megadott távolság érvénytelen (\"{}\")!",
-                        dist_inner
-                    );
-                    return;
-                }
-            };
+            let dist = parse_number_value(args.first().unwrap().to_string(), &mut turtle.variables);
             let x_offset = dist as f32 * turtle.angle.sin();
             let y_offset = dist as f32 * turtle.angle.cos();
             if !turtle.pen_up {
@@ -220,24 +225,31 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
                 turtle.set_position(turtle.position.x - x_offset, turtle.position.y - y_offset);
             }
         } else if rotate_right_commands.contains(structure.first().unwrap()) {
-            let angle: f32 = args.first().unwrap().parse().unwrap();
+            let angle: f32 =
+                parse_number_value(args.first().unwrap().to_string(), &mut turtle.variables) as f32;
             let corrected_angle = angle * ((2_f32 * PI) / 360_f32);
             turtle.angle -= corrected_angle;
         } else if rotate_left_commands.contains(structure.first().unwrap()) {
-            let angle: f32 = args.first().unwrap().parse().unwrap();
+            let angle: f32 =
+                parse_number_value(args.first().unwrap().to_string(), &mut turtle.variables) as f32;
             let corrected_angle = angle * ((2_f32 * PI) / 360_f32);
             turtle.angle -= (2_f32 * PI) - corrected_angle;
         } else if pencolor_commands.contains(structure.first().unwrap()) {
-            let r: u8 = args.first().unwrap().parse().unwrap();
-            let g: u8 = args.get(1).unwrap().parse().unwrap();
-            let b: u8 = args.get(2).unwrap().parse().unwrap();
-            let a: u8 = args.get(3).unwrap().parse().unwrap();
+            let r: u8 =
+                parse_number_value(args.get(0).unwrap().to_string(), &mut turtle.variables) as u8;
+            let g: u8 =
+                parse_number_value(args.get(1).unwrap().to_string(), &mut turtle.variables) as u8;
+            let b: u8 =
+                parse_number_value(args.get(2).unwrap().to_string(), &mut turtle.variables) as u8;
+            let a: u8 =
+                parse_number_value(args.get(3).unwrap().to_string(), &mut turtle.variables) as u8;
             turtle.pencolor = Color32::from_rgba_unmultiplied(r, g, b, a);
             turtle.path.push(vec![]);
             turtle.path_color.push(turtle.pencolor);
             turtle.path_width.push(turtle.penwidth);
         } else if penwidth_commands.contains(structure.first().unwrap()) {
-            let width: f32 = args.first().unwrap().parse().unwrap();
+            let width: f32 =
+                parse_number_value(args.first().unwrap().to_string(), &mut turtle.variables) as f32;
             turtle.penwidth = width;
             turtle.path.push(vec![]);
             turtle.path_color.push(turtle.pencolor);
@@ -256,18 +268,20 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             let searched_var: &Variable = match searched_var_result {
                 Some(result) => result,
                 None => {
-                    println!("Nem létezik a \"{}\" változó!", command.1);
+                    turtle.command_history.push(format!(
+                        "Nem létezik a \"{}\" változó!",
+                        args.first().unwrap()
+                    ));
                     return;
                 }
             };
-            println!(
+            turtle.command_history.push(format!(
                 "{} = {}",
                 args.first().unwrap(),
                 searched_var.variable_type.get_value()
-            );
+            ));
             // Printing out all the variables
             //println!("{:?}", turtle.variables.iter());
-            return;
         } else if printraw_commands.contains(structure.first().unwrap()) {
             // Command for printing out the variables raw value
             let searched_var_result: Option<&Variable> =
@@ -275,20 +289,44 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             let searched_var: &Variable = match searched_var_result {
                 Some(result) => result,
                 None => {
-                    println!("Nem létezik a \"{}\" változó!", command.1);
+                    turtle.command_history.push(format!(
+                        "Nem létezik a \"{}\" változó!",
+                        args.first().unwrap()
+                    ));
                     return;
                 }
             };
-            println!("{} = {}", args.first().unwrap(), searched_var.raw_value);
-            return;
+            turtle.command_history.push(format!(
+                "{} = {}",
+                args.first().unwrap(),
+                searched_var.raw_value
+            ));
+        } else if clear_commands.contains(structure.first().unwrap()) {
+            turtle.command_history.clear();
         } else if repeat_commands.contains(structure.first().unwrap()) {
             let from: isize = args.get(1).unwrap().parse().unwrap();
             let to: isize = args.get(2).unwrap().parse().unwrap();
+            let var = Variable {
+                raw_value: from.to_string(),
+                variable_type: VariableTypes::number { value: from as f64 },
+                writable: false,
+            };
+            turtle
+                .variables
+                .insert(args.first().unwrap().to_string(), var);
             //
             //  Printing the command block that is passed to the next iteration
             //
             //println!("Command block: {}", command_blocks);
-            for i in from..to {
+            for var in from..to {
+                let variable = Variable {
+                    raw_value: var.to_string(),
+                    variable_type: VariableTypes::number { value: var as f64 },
+                    writable: false,
+                };
+                turtle
+                    .variables
+                    .insert(args.first().unwrap().to_string(), variable);
                 execute_command(command_blocks.to_string(), turtle);
             }
         }

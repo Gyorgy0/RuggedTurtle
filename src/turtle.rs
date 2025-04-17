@@ -17,6 +17,7 @@ pub struct Turtle {
     pub path_width: Vec<f32>,
     pub pen_up: bool,
     pub variables: HashMap<String, Variable>,
+    pub command_history: Vec<String>,
 }
 
 impl Turtle {
