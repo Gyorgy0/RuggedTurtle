@@ -1,6 +1,6 @@
 # RuggedTurtle
 
-This is my first interpreter written in Rust. The program let's you control a turtle with specific commands. The program primarily is for teaching programming,
+This is my first interpreter written in Rust. The program lets you control a turtle with specific commands. The program is primarily for teaching programming,
 by visualizing instruction graphically.
 
 #### WebAssembly version
@@ -16,7 +16,7 @@ by visualizing instruction graphically.
 
 The program supports multiple commands for controlling the turtle's movement. Valid commands are some hungarian and english keywords.
 
-## Variables declaration
+## Variable declaration
 You can declare numbers as a variable or you can refer to a previously declared variable in a variable declaration.
 -   ```<variable_name> = variable value```
 
