@@ -65,6 +65,12 @@ You can declare numbers as a variable or you can refer to a previously declared 
 
 - ```repeat(variable, from, to (exclusive boundary - it goes until it hits the NUMBER BEFORE THE SPECIFIED number )) {commands}``` <br>**Aliases: i() {}, ism() {}, ismetles() {}, r() {}, rep() {}, repeat() {}, for() {}**
 
+# Usage
+
+
+https://github.com/user-attachments/assets/60537ea4-ade5-4772-9d83-4bc40853d0bc
+
+
 # Graphics
 Here are some commands and their effect on the turtle's movement.
 ```
