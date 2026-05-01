@@ -66,7 +66,7 @@ You can declare numbers as a variable or you can refer to a previously declared 
 - ```repeat(variable, from, to (exclusive boundary - it goes until it hits the NUMBER BEFORE THE SPECIFIED number )) {commands}``` <br>**Aliases: i() {}, ism() {}, ismetles() {}, r() {}, rep() {}, repeat() {}, for() {}**
 
 # Graphics
-### command: 
+Here are some commands and their effect on the turtle's movement.
 ```
 for(i, 0, 200) {pencolor(55+i, 0, 55+i, 255); forward(30+i); right(59)}
 ```
@@ -77,7 +77,7 @@ for(i, 0, 200) {pencolor(55+i, 0, 55+i, 255); forward(30+i); right(59)}
 
 </div>
 
-### command: 
+
 ```
 for(i, 0, 200) {forward(100); right(59+i); forward(100)}
 ```
