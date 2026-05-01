@@ -9,6 +9,28 @@ use egui_extras::install_image_loaders;
 
 use crate::{commands::execute_command, turtle::Turtle};
 
+
+#[cfg(target_os = "android")]
+#[no_mangle]
+fn android_main(app: winit::platform::android::activity::AndroidApp) {
+    // Log to android output
+    android_logger::init_once(
+        android_logger::Config::default().with_max_level(log::LevelFilter::Info),
+    );
+
+    let options = eframe::NativeOptions {
+        android_app: Some(app),
+        ..Default::default()
+    };
+    eframe::run_native(
+        "Rugged turtle",
+        options,
+        Box::new(|cc| Ok(Box::new(RuggedTurtleApp::new(cc)))),
+    )
+    .unwrap()
+}
+
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
