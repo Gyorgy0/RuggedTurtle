@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, ops::RangeInclusive};
+use std::{f32::consts::PI, fs, ops::RangeInclusive, thread::LocalKey};
 
 use egui::{
     self, color_picker::Alpha, include_image, menu, Align2, CentralPanel, Color32, Rect,
@@ -7,8 +7,7 @@ use egui::{
 use egui_dialogs::{dialog_window, Dialog, DialogContext, DialogDetails, Dialogs};
 use egui_extras::install_image_loaders;
 
-use crate::{commands::execute_command, turtle::Turtle};
-
+use crate::{commands::execute_command, locale::Locale, turtle::Turtle};
 
 #[cfg(target_os = "android")]
 #[no_mangle]
@@ -30,7 +29,6 @@ fn android_main(app: winit::platform::android::activity::AndroidApp) {
     .unwrap()
 }
 
-
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -41,7 +39,6 @@ pub struct RuggedTurtleApp<'a> {
     opened_editor: bool,
     #[serde(skip)]
     turtle: Turtle,
-    canvas: (u16, u16),
     dark_mode: bool,
     #[serde(skip)]
     dialogs: Dialogs<'a>,
@@ -56,7 +53,6 @@ impl Default for RuggedTurtleApp<'_> {
             text_editor: "".to_string(),
             opened_editor: false,
             turtle: Turtle::default(),
-            canvas: (640, 480),
             dark_mode: false,
             dialogs: Dialogs::default(),
             dialogopen: false,
@@ -87,6 +83,11 @@ impl RuggedTurtleApp<'_> {
             cc.egui_ctx.set_visuals(Visuals::light());
             cc.egui_ctx.set_pixels_per_point(1.25);
         }
+
+        let def_locale = Locale::default();
+        let text = serde_json::to_string_pretty(&serde_json::json!(def_locale)).unwrap();
+        fs::write("default_locale.json" , text).unwrap();
+
         application
     }
 }
@@ -98,7 +99,7 @@ impl eframe::App for RuggedTurtleApp<'_> {
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::context::Context, _frame: &mut eframe::Frame) {
         const COLOR_PICKER_DIALOG_ID: &str = "color_picker_dialog";
         const WIDTH_INPUT_DIALOG_ID: &str = "width_input_dialog";
         // Logic for showing the dialogs and handling the reply is there is one
@@ -129,7 +130,7 @@ impl eframe::App for RuggedTurtleApp<'_> {
             self.turtle.command_history.clear();
             self.turtle
                 .command_history
-                .push("A parancsok listájáért írd be a \"segitseg\" parancsot!".to_string());
+                .push("A parancsok listájáért írd be a \"segitseg\" parancsot! Amennyiben nem látod a teknőst, írd be az \"alaphelyzet\" parancsot.".to_string());
             let height = ctx.screen_rect().width().max(ctx.screen_rect().height()) * 0.030;
             self.turtle.set_size(0.75 * height, height);
             self.turtle
@@ -146,59 +147,38 @@ impl eframe::App for RuggedTurtleApp<'_> {
             self.turtle.path_width.push(self.turtle.penwidth);
             ctx.forget_image(turtle_icon.uri().unwrap());
         }
-        if !self.dark_mode {
-            TopBottomPanel::bottom("Console").show(ctx, |ui| {
-                bottom_size = ui.available_size_before_wrap().y;
+        TopBottomPanel::bottom("Console").show(ctx, |ui| {
+            bottom_size = ui.available_size_before_wrap().y;
+            if !self.dark_mode {
                 egui::widgets::TextEdit::singleline(&mut self.input)
                     .desired_width(f32::INFINITY)
                     .background_color(Color32::KHAKI)
                     .text_color(Color32::BLACK)
                     .ui(ui);
-                ui.horizontal(|ui| {
-                    if ui.button("Futtatás").clicked() {
-                        self.turtle.variables.clear();
-                        execute_command(self.input.clone(), &mut self.turtle);
-                    }
-                    if ui.button("Tollszín módosítása...").clicked() {
-                        DialogDetails::new(ColorPickerDialog::new(self.turtle.pencolor))
-                            .with_id(COLOR_PICKER_DIALOG_ID)
-                            .show(&mut self.dialogs);
-                        self.dialogopen = true;
-                    }
-                    if ui.button("Toll vastagsága...").clicked() {
-                        DialogDetails::new(WidthInputDialog::new(self.turtle.penwidth))
-                            .with_id(WIDTH_INPUT_DIALOG_ID)
-                            .show(&mut self.dialogs);
-                        self.dialogopen = true;
-                    }
-                });
-            });
-        } else if self.dark_mode {
-            TopBottomPanel::bottom("Console").show(ctx, |ui| {
-                bottom_size = ui.available_size_before_wrap().y;
+            } else if self.dark_mode {
                 egui::widgets::TextEdit::singleline(&mut self.input)
                     .desired_width(f32::INFINITY)
                     .ui(ui);
-                ui.horizontal(|ui| {
-                    if ui.button("Futtatás").clicked() {
-                        self.turtle.variables.clear();
-                        execute_command(self.input.clone(), &mut self.turtle);
-                    }
-                    if ui.button("Tollszín módosítása...").clicked() {
-                        DialogDetails::new(ColorPickerDialog::new(self.turtle.pencolor))
-                            .with_id(COLOR_PICKER_DIALOG_ID)
-                            .show(&mut self.dialogs);
-                        self.dialogopen = true;
-                    }
-                    if ui.button("Toll vastagsága...").clicked() {
-                        DialogDetails::new(WidthInputDialog::new(self.turtle.penwidth))
-                            .with_id(WIDTH_INPUT_DIALOG_ID)
-                            .show(&mut self.dialogs);
-                        self.dialogopen = true;
-                    }
-                });
+            }
+            ui.horizontal(|ui| {
+                if ui.button("Futtatás").clicked() {
+                    self.turtle.variables.clear();
+                    execute_command(self.input.clone(), &mut self.turtle);
+                }
+                if ui.button("Tollszín módosítása...").clicked() {
+                    DialogDetails::new(ColorPickerDialog::new(self.turtle.pencolor))
+                        .with_id(COLOR_PICKER_DIALOG_ID)
+                        .show(&mut self.dialogs);
+                    self.dialogopen = true;
+                }
+                if ui.button("Toll vastagsága...").clicked() {
+                    DialogDetails::new(WidthInputDialog::new(self.turtle.penwidth))
+                        .with_id(WIDTH_INPUT_DIALOG_ID)
+                        .show(&mut self.dialogs);
+                    self.dialogopen = true;
+                }
             });
-        }
+        });
         //self.dialogs.show(ctx);
         TopBottomPanel::top("Menubar").show(ctx, |ui| {
             menu::bar(ui, |ui| {
@@ -206,15 +186,6 @@ impl eframe::App for RuggedTurtleApp<'_> {
                     if ui.button("Alaphelyzet").clicked() {
                         self.turtle = Turtle::default();
                     }
-                    /*if ui.button("Új vászon").clicked() {
-                        self.turtle = Turtle::default();
-                    }
-                    if ui.button("Mentés").clicked() {
-                        self.input = "Fájl mentve...".to_string();
-                    }
-                    if ui.button("Szöveg szerkesztése").clicked() && !self.opened_editor {
-                        self.opened_editor = true;
-                    }*/
                 });
                 ui.menu_button("Beállítások", |ui| {
                     if ui.button("Sötét mód").clicked() {
@@ -293,6 +264,8 @@ impl eframe::App for RuggedTurtleApp<'_> {
             });
         });
     }
+
+    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {}
 }
 
 pub struct ColorPickerDialog {
@@ -329,15 +302,13 @@ impl Dialog<Color32> for ColorPickerDialog {
                     res = Some(self.original_color);
                 }
                 if ui.button("Szín kimásolása...").clicked() {
-                    ui.output_mut(|out| {
-                        out.copied_text = format!(
-                            "{}, {}, {}, {}",
-                            self.picked_color.r(),
-                            self.picked_color.g(),
-                            self.picked_color.b(),
-                            self.picked_color.a()
-                        )
-                    });
+                    ui.ctx().copy_text(format!(
+                        "{}, {}, {}, {}",
+                        self.picked_color.r(),
+                        self.picked_color.g(),
+                        self.picked_color.b(),
+                        self.picked_color.a()
+                    ));
                     res = Some(self.original_color);
                 }
             });

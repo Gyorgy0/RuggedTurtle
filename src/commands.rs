@@ -34,65 +34,6 @@ pub struct Variable {
     pub writable: bool,
 }
 
-const HELP_MENU_HUN:&str = "#############
- # Változók
- #############
- -   <változó_neve> = változó értéke (megadható más változó is, plusz aritmetikai műveletek (+, -, *, /, :, %))
- 
- 
- #########################
- # Aritmetikai műveletek
- #########################
- - '+' - összeadás (összead két számot, vagy változót)
- - '-' - kivonás (kivon egy számot egy másik számból, vagy változót)
- - '*' - szorzás (összeszoroz egy számot egy másik számmal, vagy változót)
- - '/' - teljes osztás (eloszt egy számot egy másik számmal, vagy változóval, nem feltétlen egész szám az eredmény)
- - ':' - egész osztás (eloszt egy számot egy másik számmal, vagy változóval, egész szám az eredmény)
- - '%' - maradékos osztás (eloszt egy számot egy másik számmal, vagy változóval, ennek az osztásnak a maradékát adja vissza)
- 
- 
- #############
- # Parancsok
- #############
- - elore(pixelek száma, amivel előre kell mennie a teknősnek)
- Rövidítések: e(), elore(), f(), forward()
- 
- - jobbra(szög megadása fokban, hogy mennyit forduljon el a karakter jobb oldalára 0-360)
- Rövidítések: j(), jobb(), jobbra(), r(), right()
- 
- - balra(szög megadása fokban, hogy mennyit forduljon el a karakter bal oldalára 0-360)
- Rövidítések: b(), bal(), balra(), l(), left()
- 
- - tollszin(piros szín megadása 0-255, zöld szín megadása 0-255, kék szín megadása 0-255, alfa csatorna megadása 0-255) - megadja a vonal színét RGBA színként pl.(0,0,0,255) - fekete, (255,255,255,255) - fehér. (255,255,255,255) - átlátszó
- Rövidítések: tsz(), tollszin(), szin(), pc(), pencolor(), color()
- 
- - tollvastagsag(toll vastagsága pixelekben, minnél nagyobb, annál vastagabb a vonal)
- Rövidítések: tv(), tollvastagsag(), vastagsag(), pw(), penwidth(), width()
- 
- - tollfel - felveszi a tollat a vászonról, így a teknős nem hagy maga után nyomot
- Rövidítések: tf, tollfel, pu, penup
- 
- - tollle - lerakja a tollat a vászonra, így a teknős újra nyomot hagy
- Rövidítések: tl, tollle, pd, pendown
- 
- - kiertekeles(<változó>) - egyszerűsíti és kiírja a megadott változó értékét
- Rövidítések: kier(), kiertekeles(), kiszamolas(), eval(), calc(), calculate(), evaluate()
- 
- - kiiratas(<változó>) - kiírja a megadott változót
- Rövidítések: ki(), kiir(), kiiratas(), print()
- 
- - torol - kitörli a terminál kimenetét
- Rövidítések: trl, torol, clr, clear
-
- - alaphelyzet - alaphelyzetbe rakja az alkalmazást
- Rövidítések: alaphelyzet, reset, default
- 
- - segitseg - kiírja a parancsokat és azok használatát
- Rövidítések: ?, segitseg, help
- 
- - ismetles(változó, ettől, addig (exkluzív határ - megadott SZÁM ELŐTTI SZÁMIG megy)) {parancsok}
- Rövidítések: i() {}, ism() {}, ismetles() {}, r() {}, rep() {}, repeat() {}, for() {}";
-
 #[derive(Default, Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Command {
     aliases: &'static str,
@@ -490,7 +431,7 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
                     .push(format!("A beírt ciklus kezdetének ({}) kisebb, vagy egyenlőnek kell lennie, mint a végének ({})!", from, to));
             }
         } else if help_commands.contains(structure.first().unwrap()) {
-            turtle.command_history.push(HELP_MENU_HUN.to_string());
+            turtle.command_history.push(String::new());
         } else {
             turtle
                 .command_history

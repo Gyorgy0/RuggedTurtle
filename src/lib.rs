@@ -1,5 +1,6 @@
 mod app;
 mod arithmetic;
+mod locale;
 //mod boolean;
 mod commands;
 //mod documentation;
