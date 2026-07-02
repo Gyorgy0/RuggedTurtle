@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, fs, ops::RangeInclusive, thread::LocalKey};
+use std::{f32::consts::PI, ops::RangeInclusive};
 
 use egui::{
     self, color_picker::Alpha, include_image, menu, Align2, CentralPanel, Color32, Rect,
@@ -7,7 +7,11 @@ use egui::{
 use egui_dialogs::{dialog_window, Dialog, DialogContext, DialogDetails, Dialogs};
 use egui_extras::install_image_loaders;
 
-use crate::{commands::execute_command, locale::Locale, turtle::Turtle};
+use crate::{
+    commands::execute_command,
+    locale::{get_text, import_locales, Locale},
+    turtle::Turtle,
+};
 
 #[cfg(target_os = "android")]
 #[no_mangle]
@@ -36,7 +40,9 @@ pub struct RuggedTurtleApp<'a> {
     #[serde(skip)]
     input: String,
     text_editor: String,
-    opened_editor: bool,
+    #[serde(skip)]
+    locale: Vec<Locale>,
+    selected_locale: usize,
     #[serde(skip)]
     turtle: Turtle,
     dark_mode: bool,
@@ -48,10 +54,12 @@ pub struct RuggedTurtleApp<'a> {
 
 impl Default for RuggedTurtleApp<'_> {
     fn default() -> Self {
+        let mut locale = vec![];
         Self {
             input: String::new(),
             text_editor: "".to_string(),
-            opened_editor: false,
+            locale: import_locales(&mut locale),
+            selected_locale: 0_usize,
             turtle: Turtle::default(),
             dark_mode: false,
             dialogs: Dialogs::default(),
@@ -83,11 +91,6 @@ impl RuggedTurtleApp<'_> {
             cc.egui_ctx.set_visuals(Visuals::light());
             cc.egui_ctx.set_pixels_per_point(1.25);
         }
-
-        let def_locale = Locale::default();
-        let text = serde_json::to_string_pretty(&serde_json::json!(def_locale)).unwrap();
-        fs::write("default_locale.json" , text).unwrap();
-
         application
     }
 }
@@ -128,9 +131,11 @@ impl eframe::App for RuggedTurtleApp<'_> {
         let turtle_icon: egui::ImageSource = include_image!("assets/rugged_turtle.svg");
         if self.turtle == Turtle::default() {
             self.turtle.command_history.clear();
-            self.turtle
-                .command_history
-                .push("A parancsok listájáért írd be a \"segitseg\" parancsot! Amennyiben nem látod a teknőst, írd be az \"alaphelyzet\" parancsot.".to_string());
+            self.turtle.command_history.push(
+                get_text(&self.locale, self.selected_locale)
+                    .terminal_help_message
+                    .to_string(),
+            );
             let height = ctx.screen_rect().width().max(ctx.screen_rect().height()) * 0.030;
             self.turtle.set_size(0.75 * height, height);
             self.turtle
@@ -161,79 +166,160 @@ impl eframe::App for RuggedTurtleApp<'_> {
                     .ui(ui);
             }
             ui.horizontal(|ui| {
-                if ui.button("Futtatás").clicked() {
+                if ui
+                    .button(
+                        get_text(&self.locale, self.selected_locale)
+                            .run_button
+                            .to_string(),
+                    )
+                    .clicked()
+                {
                     self.turtle.variables.clear();
-                    execute_command(self.input.clone(), &mut self.turtle);
+                    execute_command(
+                        self.input.clone(),
+                        &mut self.turtle,
+                        &self.locale,
+                        self.selected_locale,
+                    );
                 }
-                if ui.button("Tollszín módosítása...").clicked() {
-                    DialogDetails::new(ColorPickerDialog::new(self.turtle.pencolor))
-                        .with_id(COLOR_PICKER_DIALOG_ID)
-                        .show(&mut self.dialogs);
+                if ui
+                    .button(
+                        get_text(&self.locale, self.selected_locale)
+                            .pencolor_button
+                            .to_string(),
+                    )
+                    .clicked()
+                {
+                    DialogDetails::new(ColorPickerDialog::new(
+                        self.turtle.pencolor,
+                        &self.locale,
+                        self.selected_locale,
+                    ))
+                    .with_id(COLOR_PICKER_DIALOG_ID)
+                    .show(&mut self.dialogs);
                     self.dialogopen = true;
                 }
-                if ui.button("Toll vastagsága...").clicked() {
-                    DialogDetails::new(WidthInputDialog::new(self.turtle.penwidth))
-                        .with_id(WIDTH_INPUT_DIALOG_ID)
-                        .show(&mut self.dialogs);
+                if ui
+                    .button(
+                        get_text(&self.locale, self.selected_locale)
+                            .pen_width_button
+                            .to_string(),
+                    )
+                    .clicked()
+                {
+                    DialogDetails::new(WidthInputDialog::new(
+                        self.turtle.penwidth,
+                        &self.locale,
+                        self.selected_locale,
+                    ))
+                    .with_id(WIDTH_INPUT_DIALOG_ID)
+                    .show(&mut self.dialogs);
                     self.dialogopen = true;
                 }
             });
         });
-        //self.dialogs.show(ctx);
         TopBottomPanel::top("Menubar").show(ctx, |ui| {
             menu::bar(ui, |ui| {
-                ui.menu_button("Fájl", |ui| {
-                    if ui.button("Alaphelyzet").clicked() {
-                        self.turtle = Turtle::default();
-                    }
-                });
-                ui.menu_button("Beállítások", |ui| {
-                    if ui.button("Sötét mód").clicked() {
-                        ctx.set_visuals(Visuals::dark());
-                        self.dark_mode = true;
-                    }
-                    if ui.button("Világos mód").clicked() {
-                        ctx.set_visuals(Visuals::light());
-                        self.dark_mode = false;
-                    }
-                });
+                ui.menu_button(
+                    get_text(&self.locale, self.selected_locale)
+                        .file_menu
+                        .to_string(),
+                    |ui| {
+                        if ui
+                            .button(
+                                get_text(&self.locale, self.selected_locale)
+                                    .reset_menu
+                                    .to_string(),
+                            )
+                            .clicked()
+                        {
+                            self.turtle = Turtle::default();
+                        }
+                    },
+                );
+                ui.menu_button(
+                    get_text(&self.locale, self.selected_locale)
+                        .settings_menu
+                        .to_string(),
+                    |ui| {
+                        if ui
+                            .button(
+                                get_text(&self.locale, self.selected_locale)
+                                    .dark_theme_menu
+                                    .to_string(),
+                            )
+                            .clicked()
+                        {
+                            ctx.set_visuals(Visuals::dark());
+                            self.dark_mode = true;
+                        }
+                        if ui
+                            .button(
+                                get_text(&self.locale, self.selected_locale)
+                                    .light_theme_menu
+                                    .to_string(),
+                            )
+                            .clicked()
+                        {
+                            ctx.set_visuals(Visuals::light());
+                            self.dark_mode = false;
+                        }
+                        ui.menu_button(
+                            get_text(&self.locale, self.selected_locale)
+                                .languages_menu
+                                .clone(),
+                            |ui| {
+                                for languages in 0_usize..self.locale.len() {
+                                    if ui
+                                        .button(self.locale[languages].get_language_name())
+                                        .clicked()
+                                    {
+                                        self.selected_locale = languages;
+                                    }
+                                }
+                            },
+                        );
+                    },
+                );
             });
         });
         CentralPanel::default().show(ctx, |ui| {
             if !self.dialogopen {
                 ctx.style_mut(|style| style.visuals.window_shadow = Shadow::NONE);
-                egui::containers::Window::new(" - Parancsok üzenetei - ")
-                    .anchor(
-                        Align2::CENTER_BOTTOM,
-                        Vec2::new(0.0, -(bottom_size + 2_f32)),
-                    )
-                    .movable(false)
-                    .constrain(true)
-                    .resizable([false, true])
-                    .max_height(ui.max_rect().x_range().max / 3.0)
-                    .min_width(ctx.screen_rect().x_range().max)
-                    .show(ctx, |ui| {
-                        let text_style = TextStyle::Monospace;
-                        let row_height = ui.text_style_height(&text_style);
-                        ScrollArea::vertical()
-                            .auto_shrink(false)
-                            .scroll_bar_visibility(
-                                egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
-                            )
-                            .stick_to_bottom(true)
-                            .show_rows(
-                                ui,
-                                row_height,
-                                self.turtle.command_history.len(),
-                                |ui, row_range| {
-                                    for row in row_range {
-                                        ui.label(
-                                            " ".to_string() + &self.turtle.command_history[row],
-                                        );
-                                    }
-                                },
-                            );
-                    });
+                egui::containers::Window::new(
+                    get_text(&self.locale, self.selected_locale)
+                        .terminal_title
+                        .to_string(),
+                )
+                .anchor(
+                    Align2::CENTER_BOTTOM,
+                    Vec2::new(0.0, -(bottom_size + 2_f32)),
+                )
+                .movable(false)
+                .constrain(true)
+                .resizable([false, true])
+                .max_height(ui.max_rect().x_range().max / 3.0)
+                .min_width(ctx.screen_rect().x_range().max)
+                .show(ctx, |ui| {
+                    let text_style = TextStyle::Monospace;
+                    let row_height = ui.text_style_height(&text_style);
+                    ScrollArea::vertical()
+                        .auto_shrink(false)
+                        .scroll_bar_visibility(
+                            egui::scroll_area::ScrollBarVisibility::AlwaysVisible,
+                        )
+                        .stick_to_bottom(true)
+                        .show_rows(
+                            ui,
+                            row_height,
+                            self.turtle.command_history.len(),
+                            |ui, row_range| {
+                                for row in row_range {
+                                    ui.label(" ".to_string() + &self.turtle.command_history[row]);
+                                }
+                            },
+                        );
+                });
             }
             ScrollArea::new([true, true]).show(ui, |ui| {
                 // Painting the lines drawn by the turtle
@@ -265,19 +351,23 @@ impl eframe::App for RuggedTurtleApp<'_> {
         });
     }
 
-    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {}
+    fn ui(&mut self, _ui: &mut egui::Ui, _frame: &mut eframe::Frame) {}
 }
 
 pub struct ColorPickerDialog {
     pub picked_color: Color32,
     pub original_color: Color32,
+    pub locale: Vec<Locale>,
+    pub selected_locale: usize,
 }
 
 impl ColorPickerDialog {
-    pub fn new(color: Color32) -> Self {
+    pub fn new(color: Color32, locale: &[Locale], selected_locale: usize) -> Self {
         Self {
             picked_color: color,
             original_color: color,
+            locale: locale.to_vec(),
+            selected_locale,
         }
     }
 }
@@ -287,21 +377,53 @@ impl Dialog<Color32> for ColorPickerDialog {
         let mut res = None;
 
         // Draw the dialog ui
-        dialog_window(ctx, dctx, "Szín kiválasztása").show(ctx, |ui| {
-            ui.label("Kérlek, válassz egy színt: ");
+        dialog_window(
+            ctx,
+            dctx,
+            get_text(&self.locale, self.selected_locale)
+                .colorpicker_dialog_title
+                .to_string(),
+        )
+        .show(ctx, |ui| {
+            ui.label(
+                get_text(&self.locale, self.selected_locale)
+                    .colorpicker_dialog_text
+                    .to_string(),
+            );
             egui::widgets::color_picker::color_picker_color32(
                 ui,
                 &mut self.picked_color,
                 Alpha::OnlyBlend,
             );
             ui.horizontal(|ui| {
-                if ui.button("Kész").clicked() {
+                if ui
+                    .button(
+                        get_text(&self.locale, self.selected_locale)
+                            .done_button
+                            .to_string(),
+                    )
+                    .clicked()
+                {
                     res = Some(self.picked_color);
                 }
-                if ui.button("Mégse").clicked() {
+                if ui
+                    .button(
+                        get_text(&self.locale, self.selected_locale)
+                            .cancel_button
+                            .to_string(),
+                    )
+                    .clicked()
+                {
                     res = Some(self.original_color);
                 }
-                if ui.button("Szín kimásolása...").clicked() {
+                if ui
+                    .button(
+                        get_text(&self.locale, self.selected_locale)
+                            .copy_color_button
+                            .to_string(),
+                    )
+                    .clicked()
+                {
                     ui.ctx().copy_text(format!(
                         "{}, {}, {}, {}",
                         self.picked_color.r(),
@@ -321,13 +443,17 @@ impl Dialog<Color32> for ColorPickerDialog {
 pub struct WidthInputDialog {
     pub new_width: f32,
     pub original_width: f32,
+    pub locale: Vec<Locale>,
+    pub selected_locale: usize,
 }
 
 impl WidthInputDialog {
-    pub fn new(width: f32) -> Self {
+    pub fn new(width: f32, locale: &[Locale], selected_locale: usize) -> Self {
         Self {
             new_width: width,
             original_width: width,
+            locale: locale.to_vec(),
+            selected_locale,
         }
     }
 }
@@ -337,14 +463,39 @@ impl Dialog<f32> for WidthInputDialog {
         let mut res = None;
 
         // Draw the dialog ui
-        dialog_window(ctx, dctx, "Vonalvastagság kiválasztása").show(ctx, |ui| {
-            ui.label("Kérlek, add meg, milyen vastag legyen a vonal: ");
+        dialog_window(
+            ctx,
+            dctx,
+            get_text(&self.locale, self.selected_locale)
+                .pen_width_dialog_title
+                .to_string(),
+        )
+        .show(ctx, |ui| {
+            ui.label(
+                get_text(&self.locale, self.selected_locale)
+                    .pen_width_dialog_text
+                    .to_string(),
+            );
             egui::Slider::new(&mut self.new_width, RangeInclusive::new(0_f32, 100_f32)).ui(ui);
             ui.horizontal(|ui| {
-                if ui.button("Kész").clicked() {
+                if ui
+                    .button(
+                        get_text(&self.locale, self.selected_locale)
+                            .done_button
+                            .to_string(),
+                    )
+                    .clicked()
+                {
                     res = Some(self.new_width);
                 }
-                if ui.button("Mégse").clicked() {
+                if ui
+                    .button(
+                        get_text(&self.locale, self.selected_locale)
+                            .cancel_button
+                            .to_string(),
+                    )
+                    .clicked()
+                {
                     res = Some(self.original_width);
                 }
             });
@@ -357,13 +508,17 @@ impl Dialog<f32> for WidthInputDialog {
 pub struct NewCanvasDialog {
     pub size: Vec2,
     pub original_size: Vec2,
+    pub locale: Vec<Locale>,
+    pub selected_locale: usize,
 }
 
 impl NewCanvasDialog {
-    pub fn new(size: Vec2) -> Self {
+    pub fn new(size: Vec2, locale: &[Locale], selected_locale: usize) -> Self {
         Self {
             size,
             original_size: size,
+            locale: locale.to_vec(),
+            selected_locale,
         }
     }
 }
@@ -373,13 +528,38 @@ impl Dialog<Vec2> for NewCanvasDialog {
         let mut res = None;
 
         // Draw the dialog ui
-        dialog_window(ctx, dctx, "Új vászon létrehozása...").show(ctx, |ui| {
-            ui.label("Kérlek, add meg az új vászon méretét: ");
+        dialog_window(
+            ctx,
+            dctx,
+            get_text(&self.locale, self.selected_locale)
+                .new_canvas_dialog_title
+                .to_string(),
+        )
+        .show(ctx, |ui| {
+            ui.label(
+                get_text(&self.locale, self.selected_locale)
+                    .new_canvas_dialog_text
+                    .to_string(),
+            );
             ui.horizontal(|ui| {
-                if ui.button("Kész").clicked() {
+                if ui
+                    .button(
+                        get_text(&self.locale, self.selected_locale)
+                            .done_button
+                            .to_string(),
+                    )
+                    .clicked()
+                {
                     res = Some(self.size);
                 }
-                if ui.button("Mégse").clicked() {
+                if ui
+                    .button(
+                        get_text(&self.locale, self.selected_locale)
+                            .cancel_button
+                            .to_string(),
+                    )
+                    .clicked()
+                {
                     res = Some(self.original_size);
                 }
             });

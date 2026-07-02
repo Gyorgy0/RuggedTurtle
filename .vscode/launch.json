@@ -5,60 +5,51 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug unit tests in library 'egui_dialogs'",
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'eframe_template'",
             "cargo": {
                 "args": [
                     "test",
-                    "--no-run",
-                    "--lib",
-                    "--package=eframe_template"
-                ],
-                "filter": {
-                    "name": "eframe_template",
-                    "kind": "lib"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
+                    "--package=egui_dialogs"
+                ]
+            }
         },
         {
+            "name": "Debug unit tests in library 'rugged_turtle'",
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'eframe_template'",
-            "cargo": {
-                "args": [
-                    "build",
-                    "--bin=eframe_template",
-                    "--package=eframe_template"
-                ],
-                "filter": {
-                    "name": "eframe_template",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'eframe_template'",
             "cargo": {
                 "args": [
                     "test",
-                    "--no-run",
-                    "--bin=eframe_template",
-                    "--package=eframe_template"
-                ],
-                "filter": {
-                    "name": "eframe_template",
-                    "kind": "bin"
-                }
+                    "--package=rugged_turtle"
+                ]
+            }
+        },
+        {
+            "name": "Debug executable 'rugged_turtle'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "run",
+                    "--bin=rugged_turtle",
+                    "--package=rugged_turtle"
+                ]
             },
-            "args": [],
-            "cwd": "${workspaceFolder}"
+            "args": []
+        },
+        {
+            "name": "Debug unit tests in executable 'rugged_turtle'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--bin=rugged_turtle",
+                    "--package=rugged_turtle"
+                ]
+            }
         }
     ]
 }

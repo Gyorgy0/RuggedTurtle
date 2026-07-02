@@ -1,0 +1,93 @@
+language_id: EN
+language_name: English
+terminal_help_message: Type "help" to display the commands! If the turtle is not visible, type "reset" command.
+run_button: Run
+pencolor_button: Change pen color...
+pen_width_button: Change pen width...
+reset_menu: Reset
+file_menu: File
+settings_menu: Settings
+languages_menu: Languages
+dark_theme_menu: Dark theme
+light_theme_menu: Light theme
+terminal_title: " - Command history - "
+colorpicker_dialog_title: Color selection
+colorpicker_dialog_text: "Please, select a color: "
+done_button: Done
+cancel_button: Cancel
+copy_color_button: Copy color...
+pen_width_dialog_title: Line width selection
+pen_width_dialog_text: "Please, adjust the line width: "
+new_canvas_dialog_title: New canvas creation...
+new_canvas_dialog_text: "Please, specify the size of the new canvas:"
+help_menu: "\
+  #############\n
+  # Variables\n
+  #############\n
+  -   <variable_name> = variable value (also it support arithmetic operations (+, -, *, /, :, %))\n
+  \n
+  \n
+  #########################\n
+  # Arithmetic operations\n
+  #########################\n
+  - '+' - addition (it adds two numbers or variables together)\n
+  - '-' - subtraction (it subtracts a number or variable from another number or variable)\n
+  - '*' - multiplication (multiplies a number or variable with another number or variable)\n
+  - '/' - full division (divides a number or variable with another number or variable -> it can yield a decimal number)\n
+  - ':' - integer division (divides a number or variable with another number or variable -> it yields an integer)\n
+  - '%' - remainder (it gives the remainder from a division)\n
+  \n
+  \n
+  #############\n
+  # Commands\n
+  #############\n
+  - forward(number of pixels, that the turtle needs to move forward)\n
+  Aliases: f(), forward()\n
+  \n
+  - right(the angle that the turtle needs to turn to the right in degrees - 0-360)\n
+  Aliases: r(), right()\n
+  \n
+  - left(the angle that the turtle needs to turn to the left in degrees - 0-360)\n
+  Aliases: l(), left()\n
+  \n
+  - pencolor(red color component 0-255, green color component 0-255, blue color component 0-255, alpha channel value 0-255) - it changes the color of the line using the RGBA color model. Examples: (0,0,0,255) - black, (255,255,255,255) - white. (255,255,255,0) - transparent\n
+  Aliases: pc(), pencolor(), color()\n
+  \n
+  - penwidth(width of the pen in pixels -> large value = thicker line)\n
+  Aliases: pw(), penwidth(), width()\n
+  \n
+  - penup - it picks up the pen, so the turtle doesn't leave a trail\n
+  Aliases: pu, penup\n
+  \n
+  - pendown - it puts down the pen, so the turtle leaves a trail\n
+  Aliases: pd, pendown\n
+  \n
+  - evaluate(<variable>) - it evaluates an expression or variable and displays it's simplified form\n
+  Aliases: eval(), calc(), calculate(), evaluate()\n
+  \n
+  - print(<variable>) - it prints the variables' expression without simplification\n
+  Aliases: print()\n
+  \n
+  - clear - clears the terminal's command history\n
+  Aliases: clr, clear\n
+  \n
+  - reset - resets the application\n
+  Aliases: reset, default\n
+  \n
+  - help - diplays the help menu for the commands\n
+  Aliases: ?, help\n
+  \n
+  - for(<variable>, from, to (exclusive boundary - it goes until it hits the number before the specified boundary)) {commands}\n
+  Aliases: r() {}, rep() {}, repeat() {}, for() {}"
+invalid_var_name_error: You can't name a variable as a valid numerical value/expression!
+var_immutable_error: You can't update the "{}" variable!
+invalid_distance_error: The turtle can't travel the specified distance ({})!
+invalid_angle_error: The turtle can't rotate the specified angle ({})!
+invalid_color_value_error: The specified color value ({}) can't be specified! The color value intervals need to be between 0 and 255!
+invalid_color_interval_error: The color values can be between 0 and 255. The color value ({}) is invalid!
+invalid_pen_size_error: The turtle can't set it's pen's size to {}!
+invalid_variable_error: The variable, named "{}" is not found!
+invalid_loop_start_error: The specified start of the loop ({}) is not a valid number!
+invalid_loop_end_error: The specified end of the loop ({}) is not a valid number!
+invalid_loop_interval_error: The specified start of the loop ({}) needs to be less or equal to it's end ({})!
+invalid_expression: The specified input ({}) can't be evaluated!

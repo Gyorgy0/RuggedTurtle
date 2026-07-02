@@ -1,6 +1,17 @@
-use crate::{parsing::trim_whitespace, turtle::Turtle};
+use dyn_fmt::AsStrFormatExt;
 
-pub fn parse_number_value(input: String, turtle: &mut Turtle) -> f64 {
+use crate::{
+    locale::{get_text, Locale},
+    parsing::trim_whitespace,
+    turtle::Turtle,
+};
+
+pub fn parse_number_value(
+    input: String,
+    turtle: &mut Turtle,
+    locale: &[Locale],
+    selected_locale: usize,
+) -> f64 {
     // Removes whitespaces
     let mut trimmed_input = trim_whitespace(input.as_str());
     trimmed_input.push('#');
@@ -43,8 +54,18 @@ pub fn parse_number_value(input: String, turtle: &mut Turtle) -> f64 {
         // Multiplication
         let mut result = 0_f64;
         if operators[op] == '*' {
-            let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
-            let nplusth_num = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
+            let nth_num = parse_to_number(
+                tokens.get(op).unwrap().clone(),
+                turtle,
+                locale,
+                selected_locale,
+            );
+            let nplusth_num = parse_to_number(
+                tokens.get(op + 1).unwrap().clone(),
+                turtle,
+                locale,
+                selected_locale,
+            );
             result = nth_num * nplusth_num;
             tokens[op + 1] = result.to_string();
             tokens[op] = '#'.into();
@@ -57,8 +78,18 @@ pub fn parse_number_value(input: String, turtle: &mut Turtle) -> f64 {
         // Float division
         let mut result = 0_f64;
         if operators[op] == '/' {
-            let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
-            let nplusth_num = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
+            let nth_num = parse_to_number(
+                tokens.get(op).unwrap().clone(),
+                turtle,
+                locale,
+                selected_locale,
+            );
+            let nplusth_num = parse_to_number(
+                tokens.get(op + 1).unwrap().clone(),
+                turtle,
+                locale,
+                selected_locale,
+            );
             result = nth_num / nplusth_num;
             tokens[op + 1] = result.to_string();
             tokens[op] = '#'.into();
@@ -71,8 +102,18 @@ pub fn parse_number_value(input: String, turtle: &mut Turtle) -> f64 {
         // Integer division
         let mut result = 0_f64;
         if operators[op] == ':' {
-            let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
-            let nplusth_num = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
+            let nth_num = parse_to_number(
+                tokens.get(op).unwrap().clone(),
+                turtle,
+                locale,
+                selected_locale,
+            );
+            let nplusth_num = parse_to_number(
+                tokens.get(op + 1).unwrap().clone(),
+                turtle,
+                locale,
+                selected_locale,
+            );
             result = (nth_num / nplusth_num).floor();
             tokens[op + 1] = result.to_string();
             tokens[op] = '#'.into();
@@ -85,8 +126,18 @@ pub fn parse_number_value(input: String, turtle: &mut Turtle) -> f64 {
         // Remainder
         let mut result = 0_f64;
         if operators[op] == '%' {
-            let nth_num = parse_to_number(tokens.get(op).unwrap().clone(), turtle);
-            let nplusth_num = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
+            let nth_num = parse_to_number(
+                tokens.get(op).unwrap().clone(),
+                turtle,
+                locale,
+                selected_locale,
+            );
+            let nplusth_num = parse_to_number(
+                tokens.get(op + 1).unwrap().clone(),
+                turtle,
+                locale,
+                selected_locale,
+            );
             result = nth_num % nplusth_num;
             tokens[op + 1] = result.to_string();
             tokens[op] = '#'.into();
@@ -97,24 +148,44 @@ pub fn parse_number_value(input: String, turtle: &mut Turtle) -> f64 {
     operators.retain(|&o| o != '#');
 
     // Additions and subtraction
-    let mut result: f64 = parse_to_number(tokens.first().unwrap().clone(), turtle);
+    let mut result: f64 = parse_to_number(
+        tokens.first().unwrap().clone(),
+        turtle,
+        locale,
+        selected_locale,
+    );
     for op in 0..operators.len() {
         if operators[op] == '+' {
-            let new_number = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
+            let new_number = parse_to_number(
+                tokens.get(op + 1).unwrap().clone(),
+                turtle,
+                locale,
+                selected_locale,
+            );
             result += new_number;
         } else if operators[op] == '-' {
-            let new_number = parse_to_number(tokens.get(op + 1).unwrap().clone(), turtle);
+            let new_number = parse_to_number(
+                tokens.get(op + 1).unwrap().clone(),
+                turtle,
+                locale,
+                selected_locale,
+            );
             result -= new_number;
         }
     }
     //
     // Printing out tokens and operators
     //
-    println!("\nTokens{:?}\nOperators: {:?}", tokens, operators);
+    //println!("\nTokens{:?}\nOperators: {:?}", tokens, operators);
     result
 }
 
-fn parse_to_number(raw_number: String, turtle: &mut Turtle) -> f64 {
+fn parse_to_number(
+    raw_number: String,
+    turtle: &mut Turtle,
+    locale: &[Locale],
+    selected_locale: usize,
+) -> f64 {
     let mut value = 0_f64;
     if raw_number.contains(&['(', ')'][..]) {
         /*// Searching for the beginning of the parenthesis
@@ -134,7 +205,12 @@ fn parse_to_number(raw_number: String, turtle: &mut Turtle) -> f64 {
         let parenthesis_end =
             parenthesis_begin_remainder.split_at(parenthesis_end_index.last().unwrap().0);
         let final_raw_number = parenthesis_end.0;
-        value = parse_number_value(final_raw_number.to_string(), turtle);
+        value = parse_number_value(
+            final_raw_number.to_string(),
+            turtle,
+            locale,
+            selected_locale,
+        );
     } else if turtle.variables.contains_key(&raw_number) {
         value = turtle
             .variables
@@ -147,10 +223,11 @@ fn parse_to_number(raw_number: String, turtle: &mut Turtle) -> f64 {
         value = match value_result {
             Ok(val) => val,
             Err(_e) => {
-                turtle.command_history.push(format!(
-                    "A megadott bemenetet ({}) nem lehet kiszámolni!",
-                    raw_number
-                ));
+                turtle.command_history.push(
+                    get_text(&locale.to_vec(), selected_locale)
+                        .invalid_expression
+                        .format(&[raw_number]),
+                );
                 return f64::NAN;
             }
         }

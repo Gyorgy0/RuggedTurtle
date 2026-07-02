@@ -1,17 +1,62 @@
-use egui::ahash::AHashMap;
 use serde::{Deserialize, Serialize};
+
+pub fn import_locales(locales: &mut Vec<Locale>) -> Vec<Locale> {
+    locales.clear();
+    #[cfg(not(any(
+        target_os = "android",
+        target_arch = "wasm32",
+        target_os = "ios",
+        target_os = "macos"
+    )))]
+    {
+        // Materials - PC version (loads them from the src/materials folder)
+
+        use std::fs;
+        let paths = fs::read_dir("src/locale").unwrap();
+        for path in paths {
+            if path
+                .as_ref()
+                .is_ok_and(|path| path.file_name() != "default_locale.yml")
+            {
+                let locale: Result<Vec<u8>, std::io::Error> =
+                    fs::read(path.as_ref().unwrap().path().display().to_string().as_str());
+                let serialized_locale: Locale = yaml_serde::from_reader(locale.unwrap().as_slice())
+                    .unwrap_or(Locale::default());
+                locales.push(serialized_locale);
+            }
+        }
+    }
+    #[cfg(any(
+        target_os = "android",
+        target_arch = "wasm32",
+        target_os = "ios",
+        target_os = "macos"
+    ))]
+    {
+        // Materials - Portable version (includes the files in src/materials in the executable file)
+
+        use yaml_serde::from_str;
+
+        use crate::included_files::FILES;
+        // Locale
+        locales.push(from_str(&FILES.locales.locale_en).unwrap());
+        locales.push(from_str(&FILES.locales.locale_hu).unwrap());
+    }
+    locales.clone()
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Locale {
     pub language_id: String,
     pub language_name: String,
     pub terminal_help_message: String,
-    pub run_button_: String,
+    pub run_button: String,
     pub pencolor_button: String,
     pub pen_width_button: String,
     pub reset_menu: String,
     pub file_menu: String,
     pub settings_menu: String,
+    pub languages_menu: String,
     pub dark_theme_menu: String,
     pub light_theme_menu: String,
     pub terminal_title: String,
@@ -36,6 +81,7 @@ pub struct Locale {
     pub invalid_loop_start_error: String,
     pub invalid_loop_end_error: String,
     pub invalid_loop_interval_error: String,
+    pub invalid_expression: String,
 }
 
 impl Locale {
@@ -54,12 +100,13 @@ impl Default for Locale {
             language_id: String::from("EN"),
             language_name: String::from("English"),
             terminal_help_message: String::from("Type \"help\" to display the commands! If the turtle is not visible, type \"reset\" command."),
-            run_button_: String::from("Run"),
+            run_button: String::from("Run"),
             pencolor_button: String::from("Change pen color..."),
             pen_width_button: String::from("Change pen width..."),
             reset_menu: String::from("Reset"),
             file_menu: String::from("File"),
             settings_menu: String::from("Settings"),
+            languages_menu: String::from("Languages"),
             dark_theme_menu: String::from("Dark theme"),
             light_theme_menu: String::from("Light theme"),
             terminal_title: String::from(" - Command history - "),
@@ -141,65 +188,7 @@ impl Default for Locale {
             invalid_loop_start_error: String::from("The specified start of the loop ({}) is not a valid number!"),
             invalid_loop_end_error: String::from("The specified end of the loop ({}) is not a valid number!"),
             invalid_loop_interval_error: String::from("The specified start of the loop ({}) needs to be less or equal to it's end ({})!"),
+            invalid_expression: String::from("The specified input ({}) can't be evaluated!"),
         }
     }
 }
-
-const HELP_MENU_HUN: &str = r#"#############
- # Változók
- #############
- -   <változó_neve> = változó értéke (megadható más változó is, plusz aritmetikai műveletek (+, -, *, /, :, %))
- 
- 
- #########################
- # Aritmetikai műveletek
- #########################
- - '+' - összeadás (összead két számot, vagy változót)
- - '-' - kivonás (kivon egy számot egy másik számból, vagy változót)
- - '*' - szorzás (összeszoroz egy számot egy másik számmal, vagy változót)
- - '/' - teljes osztás (eloszt egy számot egy másik számmal, vagy változóval, nem feltétlen egész szám az eredmény)
- - ':' - egész osztás (eloszt egy számot egy másik számmal, vagy változóval, egész szám az eredmény)
- - '%' - maradékos osztás (eloszt egy számot egy másik számmal, vagy változóval, ennek az osztásnak a maradékát adja vissza)
- 
- 
- #############
- # Parancsok
- #############
- - elore(pixelek száma, amivel előre kell mennie a teknősnek)
- Rövidítések: e(), elore(), f(), forward()
- 
- - jobbra(szög megadása fokban, hogy mennyit forduljon el a karakter jobb oldalára 0-360)
- Rövidítések: j(), jobb(), jobbra(), r(), right()
- 
- - balra(szög megadása fokban, hogy mennyit forduljon el a karakter bal oldalára 0-360)
- Rövidítések: b(), bal(), balra(), l(), left()
- 
- - tollszin(piros szín megadása 0-255, zöld szín megadása 0-255, kék szín megadása 0-255, alfa csatorna megadása 0-255) - megadja a vonal színét RGBA színként pl.(0,0,0,255) - fekete, (255,255,255,255) - fehér. (255,255,255,0) - átlátszó
- Rövidítések: tsz(), tollszin(), szin(), pc(), pencolor(), color()
- 
- - tollvastagsag(toll vastagsága pixelekben, minnél nagyobb, annál vastagabb a vonal)
- Rövidítések: tv(), tollvastagsag(), vastagsag(), pw(), penwidth(), width()
- 
- - tollfel - felveszi a tollat a vászonról, így a teknős nem hagy maga után nyomot
- Rövidítések: tf, tollfel, pu, penup
- 
- - tollle - lerakja a tollat a vászonra, így a teknős újra nyomot hagy
- Rövidítések: tl, tollle, pd, pendown
- 
- - kiertekeles(<változó>) - egyszerűsíti és kiírja a megadott változó értékét
- Rövidítések: kier(), kiertekeles(), kiszamolas(), eval(), calc(), calculate(), evaluate()
- 
- - kiiratas(<változó>) - kiírja a megadott változót
- Rövidítések: ki(), kiir(), kiiratas(), print()
- 
- - torol - kitörli a terminál kimenetét
- Rövidítések: trl, torol, clr, clear
-
- - alaphelyzet - alaphelyzetbe rakja az alkalmazást
- Rövidítések: alaphelyzet, reset, default
- 
- - segitseg - kiírja a parancsokat és azok használatát
- Rövidítések: ?, segitseg, help
- 
- - ismetles(<változó>, ettől, addig (exkluzív határ - megadott SZÁM ELŐTTI SZÁMIG megy)) {parancsok}
- Rövidítések: i() {}, ism() {}, ismetles() {}, r() {}, rep() {}, repeat() {}, for() {}"#;

@@ -31,6 +31,8 @@ image = "0.25.10"
 winit = { version = "0.30.9", features = ["android-native-activity", "x11"] }
 android_logger = "0.15.0"
 serde_json = { version = "1.0.150", features = ["preserve_order"] }
+yaml_serde = "0.10.4"
+dyn-fmt = "0.4.3"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

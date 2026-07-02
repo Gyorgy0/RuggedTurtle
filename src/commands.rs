@@ -1,9 +1,15 @@
 use std::{f32::consts::PI, vec};
 
+use dyn_fmt::AsStrFormatExt;
 use egui::{Color32, TextBuffer};
 use serde::{Deserialize, Serialize};
 
-use crate::{arithmetic::parse_number_value, parsing::trim_whitespace, turtle::Turtle};
+use crate::{
+    arithmetic::parse_number_value,
+    locale::{get_text, Locale},
+    parsing::trim_whitespace,
+    turtle::Turtle,
+};
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum VariableTypes {
     Boolean { value: bool },
@@ -105,7 +111,12 @@ const HELP: Command = Command {
     //documentation:todo!(),
 };
 
-pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
+pub fn execute_command(
+    commandstring: String,
+    turtle: &mut Turtle,
+    locale: &[Locale],
+    selected_locale: usize,
+) {
     // Removing whitespaces
     let trimmed_commandstring: String = trim_whitespace(&commandstring);
     // This splits off the input
@@ -189,16 +200,23 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             let variable_name_result: Result<f64, _> = variable.first().unwrap().parse();
             match variable_name_result {
                 Ok(_val) => {
-                    turtle
-                        .command_history
-                        .push("Érvényes számot nem lehet megadni változóként!".to_string());
+                    turtle.command_history.push(
+                        get_text(&locale.to_vec(), selected_locale)
+                            .invalid_var_name_error
+                            .to_string(),
+                    );
                     return;
                 }
                 Err(_e) => {
                     let new_var = Variable {
                         raw_value: variable.get(1).unwrap().to_string(),
                         variable_type: VariableTypes::Number {
-                            value: parse_number_value(variable.get(1).unwrap().to_string(), turtle),
+                            value: parse_number_value(
+                                variable.get(1).unwrap().to_string(),
+                                turtle,
+                                locale,
+                                selected_locale,
+                            ),
                         },
                         writable: true,
                     };
@@ -219,10 +237,11 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
                             .unwrap()
                             .writable
                         {
-                            turtle.command_history.push(format!(
-                                "Nem lehet felülírni a \"{}\" változót!",
-                                &variable.first().unwrap()
-                            ));
+                            turtle.command_history.push(
+                                get_text(&locale.to_vec(), selected_locale)
+                                    .var_immutable_error
+                                    .format(&[variable.first().unwrap().to_string()]),
+                            );
                         } else {
                             turtle
                                 .variables
@@ -252,11 +271,18 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         //
         //println!("Structure: {:?}", structure);
         if forward_commands.contains(structure.first().unwrap()) {
-            let dist = parse_number_value(args.first().unwrap().to_string(), turtle);
+            let dist = parse_number_value(
+                args.first().unwrap().to_string(),
+                turtle,
+                locale,
+                selected_locale,
+            );
             if dist.is_nan() || dist.is_infinite() {
-                turtle
-                    .command_history
-                    .push(format!("A beírt távolságot ({}) nem tudja lemenni a teknős!", dist));
+                turtle.command_history.push(
+                    get_text(&locale.to_vec(), selected_locale)
+                        .invalid_distance_error
+                        .format(&[dist]),
+                );
                 return;
             }
             let x_offset = dist as f32 * turtle.angle.sin();
@@ -269,75 +295,131 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
                 turtle.set_position(turtle.position.x - x_offset, turtle.position.y - y_offset);
             }
         } else if rotate_right_commands.contains(structure.first().unwrap()) {
-            let angle: f64 = parse_number_value(args.first().unwrap().to_string(), turtle);
+            let angle: f64 = parse_number_value(
+                args.first().unwrap().to_string(),
+                turtle,
+                locale,
+                selected_locale,
+            );
             if angle.is_nan() || angle.is_infinite() {
-                turtle
-                    .command_history
-                    .push(format!("A beírt szögnyit ({}) nem tud fordulni a teknős!", angle));
-                return;
-            }
-            else {
+                turtle.command_history.push(
+                    get_text(&locale.to_vec(), selected_locale)
+                        .invalid_angle_error
+                        .format(&[angle]),
+                );
+            } else {
                 let corrected_angle = angle as f32 * ((2_f32 * PI) / 360_f32);
-            turtle.angle -= corrected_angle;
+                turtle.angle -= corrected_angle;
             }
         } else if rotate_left_commands.contains(structure.first().unwrap()) {
-            let angle: f64 = parse_number_value(args.first().unwrap().to_string(), turtle);
+            let angle: f64 = parse_number_value(
+                args.first().unwrap().to_string(),
+                turtle,
+                locale,
+                selected_locale,
+            );
             if angle.is_nan() || angle.is_infinite() {
-                turtle
-                    .command_history
-                    .push(format!("A beírt szögnyit ({}) nem tud fordulni a teknős!", angle));
-                return;
-            }
-            else {
+                turtle.command_history.push(
+                    get_text(&locale.to_vec(), selected_locale)
+                        .invalid_angle_error
+                        .format(&[angle]),
+                );
+            } else {
                 let corrected_angle = angle as f32 * ((2_f32 * PI) / 360_f32);
                 turtle.angle -= (2_f32 * PI) - corrected_angle;
             }
         } else if pencolor_commands.contains(structure.first().unwrap()) {
-            let r: f64 = parse_number_value(args.first().unwrap().to_string(), turtle);
-            let g: f64 = parse_number_value(args.get(1).unwrap().to_string(), turtle);
-            let b: f64 = parse_number_value(args.get(2).unwrap().to_string(), turtle);
-            let a: f64 = parse_number_value(args.get(3).unwrap().to_string(), turtle);
+            let r: f64 = parse_number_value(
+                args.first().unwrap().to_string(),
+                turtle,
+                locale,
+                selected_locale,
+            );
+            let g: f64 = parse_number_value(
+                args.get(1).unwrap().to_string(),
+                turtle,
+                locale,
+                selected_locale,
+            );
+            let b: f64 = parse_number_value(
+                args.get(2).unwrap().to_string(),
+                turtle,
+                locale,
+                selected_locale,
+            );
+            let a: f64 = parse_number_value(
+                args.get(3).unwrap().to_string(),
+                turtle,
+                locale,
+                selected_locale,
+            );
             let mut colors = [r, g, b, a];
             (0..colors.len()).for_each(|color| {
                 if colors[color].is_nan() {
-                    turtle
-                    .command_history
-                    .push(format!("A beírt színérték ({}) nem érvényes! A színértékek 0 és 255 közötti egész számok lehetnek!",colors[color]));
-                colors = [turtle.pencolor.r() as f64, turtle.pencolor.g() as f64, turtle.pencolor.b() as f64, turtle.pencolor.a() as f64];
-                }
-                else if colors[color] < 0_f64 || colors[color] > 255_f64 || (colors[color] %1_f64 != 0_f64){
-                    turtle
-                    .command_history
-                    .push(format!("A színértékek csak 0 és 255 közötti egész számok lehetnek, az ({}) színérték érvénytelen!",colors[color]));
-                    colors = [turtle.pencolor.r() as f64, turtle.pencolor.g() as f64, turtle.pencolor.b() as f64, turtle.pencolor.a() as f64];
-                    return;
+                    turtle.command_history.push(
+                        get_text(&locale.to_vec(), selected_locale)
+                            .invalid_color_value_error
+                            .format(&[colors[color]]),
+                    );
+                    colors = [
+                        turtle.pencolor.r() as f64,
+                        turtle.pencolor.g() as f64,
+                        turtle.pencolor.b() as f64,
+                        turtle.pencolor.a() as f64,
+                    ];
+                } else if colors[color] < 0_f64
+                    || colors[color] > 255_f64
+                    || (colors[color] % 1_f64 != 0_f64)
+                {
+                    turtle.command_history.push(
+                        get_text(&locale.to_vec(), selected_locale)
+                            .invalid_color_interval_error
+                            .format(&[colors[color]]),
+                    );
+                    colors = [
+                        turtle.pencolor.r() as f64,
+                        turtle.pencolor.g() as f64,
+                        turtle.pencolor.b() as f64,
+                        turtle.pencolor.a() as f64,
+                    ];
                 }
             });
-            turtle.pencolor = Color32::from_rgba_unmultiplied(colors[0] as u8,colors[1] as u8,colors[2] as u8,colors[3] as u8);
+            turtle.pencolor = Color32::from_rgba_unmultiplied(
+                colors[0] as u8,
+                colors[1] as u8,
+                colors[2] as u8,
+                colors[3] as u8,
+            );
             turtle.path.push(vec![]);
             turtle.path_color.push(turtle.pencolor);
             turtle.path_width.push(turtle.penwidth);
         } else if penwidth_commands.contains(structure.first().unwrap()) {
-            let width: f64 = parse_number_value(args.first().unwrap().to_string(), turtle);
+            let width: f64 = parse_number_value(
+                args.first().unwrap().to_string(),
+                turtle,
+                locale,
+                selected_locale,
+            );
             if width.is_nan() || width.is_infinite() {
-                turtle
-                    .command_history
-                    .push(format!("A beírt nagyságú tollat ({}) nem tudja használni a teknős!", width));
-                return;
-            }
-            else {
+                turtle.command_history.push(
+                    get_text(&locale.to_vec(), selected_locale)
+                        .invalid_pen_size_error
+                        .format(&[width]),
+                );
+            } else {
                 turtle.penwidth = width as f32;
-            turtle.path.push(vec![]);
-            turtle.path_color.push(turtle.pencolor);
-            turtle.path_width.push(turtle.penwidth);}
+                turtle.path.push(vec![]);
+                turtle.path_color.push(turtle.pencolor);
+                turtle.path_width.push(turtle.penwidth);
+            }
         } else if penup_commands.contains(structure.first().unwrap()) {
             turtle.pen_up = true;
         } else if pendown_commands.contains(structure.first().unwrap()) {
             turtle.pen_up = false;
             if turtle.path.last().is_some() {
-            turtle.path.push(vec![]);
-            turtle.path_color.push(turtle.pencolor);
-            turtle.path_width.push(turtle.penwidth);
+                turtle.path.push(vec![]);
+                turtle.path_color.push(turtle.pencolor);
+                turtle.path_width.push(turtle.penwidth);
             }
         } else if printval_commands.contains(structure.first().unwrap()) {
             // Command for printing out the variables numerical or booleanic value
@@ -346,10 +428,11 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             let searched_var: &Variable = match searched_var_result {
                 Some(result) => result,
                 None => {
-                    turtle.command_history.push(format!(
-                        "Nem létezik a \"{}\" változó!",
-                        args.first().unwrap()
-                    ));
+                    turtle.command_history.push(
+                        get_text(&locale.to_vec(), selected_locale)
+                            .invalid_variable_error
+                            .format(&[args.first().unwrap()]),
+                    );
                     return;
                 }
             };
@@ -367,10 +450,11 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
             let searched_var: &Variable = match searched_var_result {
                 Some(result) => result,
                 None => {
-                    turtle.command_history.push(format!(
-                        "Nem létezik a \"{}\" változó!",
-                        args.first().unwrap()
-                    ));
+                    turtle.command_history.push(
+                        get_text(&locale.to_vec(), selected_locale)
+                            .invalid_variable_error
+                            .format(&[args.first().unwrap()]),
+                    );
                     return;
                 }
             };
@@ -384,58 +468,70 @@ pub fn execute_command(commandstring: String, turtle: &mut Turtle) {
         } else if reset_commands.contains(structure.first().unwrap()) {
             *turtle = Turtle::default();
         } else if repeat_commands.contains(structure.first().unwrap()) {
-            let from_result: Result<isize,_> = args.get(1).unwrap().parse();
-            let to_result: Result<isize,_> = args.get(2).unwrap().parse();
+            let from_result: Result<isize, _> = args.get(1).unwrap().parse();
+            let to_result: Result<isize, _> = args.get(2).unwrap().parse();
 
             let from: isize = match from_result {
                 Ok(val) => val,
                 Err(_e) => {
-                    turtle
-                    .command_history
-                    .push(format!("A beírt ciklus kezdet ({}) nem érvényes szám, csakis egész számok lehetnek megadva!", args.get(1).unwrap()));return},
+                    turtle.command_history.push(
+                        get_text(&locale.to_vec(), selected_locale)
+                            .invalid_loop_start_error
+                            .format(&[args.get(1).unwrap()]),
+                    );
+                    return;
+                }
             };
             let to: isize = match to_result {
                 Ok(val) => val,
                 Err(_e) => {
-                    turtle
-                    .command_history
-                    .push(format!("A beírt ciklus vég ({}) nem érvényes szám, csakis egész számok lehetnek megadva!", args.get(1).unwrap()));return},
+                    turtle.command_history.push(
+                        get_text(&locale.to_vec(), selected_locale)
+                            .invalid_loop_end_error
+                            .format(&[args.get(1).unwrap()]),
+                    );
+                    return;
+                }
             };
             if from <= to {
-            let var = Variable {
-                raw_value: from.to_string(),
-                variable_type: VariableTypes::Number { value: from as f64 },
-                writable: false,
-            };
-            turtle
-                .variables
-                .insert(args.first().unwrap().to_string(), var);
-            //
-            //  Printing the command block that is passed to the next iteration
-            //
-            //println!("Command block: {}", command_blocks);
-            for var in from..to {
-                let variable = Variable {
-                    raw_value: var.to_string(),
-                    variable_type: VariableTypes::Number { value: var as f64 },
+                let var = Variable {
+                    raw_value: from.to_string(),
+                    variable_type: VariableTypes::Number { value: from as f64 },
                     writable: false,
                 };
                 turtle
                     .variables
-                    .insert(args.first().unwrap().to_string(), variable);
-                execute_command(command_blocks.to_string(), turtle);
-            }}
-            else {
-                turtle
-                    .command_history
-                    .push(format!("A beírt ciklus kezdetének ({}) kisebb, vagy egyenlőnek kell lennie, mint a végének ({})!", from, to));
+                    .insert(args.first().unwrap().to_string(), var);
+                //
+                //  Printing the command block that is passed to the next iteration
+                //
+                //println!("Command block: {}", command_blocks);
+                for var in from..to {
+                    let variable = Variable {
+                        raw_value: var.to_string(),
+                        variable_type: VariableTypes::Number { value: var as f64 },
+                        writable: false,
+                    };
+                    turtle
+                        .variables
+                        .insert(args.first().unwrap().to_string(), variable);
+                    execute_command(command_blocks.to_string(), turtle, locale, selected_locale);
+                }
+            } else {
+                turtle.command_history.push(
+                    get_text(&locale.to_vec(), selected_locale)
+                        .invalid_loop_start_error
+                        .format(&[from, to]),
+                );
             }
         } else if help_commands.contains(structure.first().unwrap()) {
             turtle.command_history.push(String::new());
         } else {
-            turtle
-                .command_history
-                .push("A parancsok listájáért írd be a \"segitseg\" parancsot!".to_string());
+            turtle.command_history.push(
+                get_text(&locale.to_vec(), selected_locale)
+                    .terminal_help_message
+                    .to_string(),
+            );
         }
     });
 }
