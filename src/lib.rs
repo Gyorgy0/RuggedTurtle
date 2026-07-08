@@ -6,5 +6,6 @@ mod locale;
 mod commands;
 //mod documentation;
 mod parsing;
+mod tests;
 mod turtle;
 pub use app::RuggedTurtleApp;

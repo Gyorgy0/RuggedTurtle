@@ -1,29 +1,42 @@
+######################################################################################################################
+
 Command test cases:
 
-<cmd>(100)  - PASS - (Executes the command)
-<cmd>(1a)   - FAIL - (Invalid argument) - Must display help message
-<cmd>a12)   - FAIL - (Invalid command)
-<cmd>(15a   - FAIL - (Invalid command)
-<cmd>(a1a5  - FAIL - (Invalid argument and command)
-a<cmd>(10)  - FAIL - (Invalid command)
+<cmd>(100)              - PASS - (Executes the command)
+<cmd>(...); <cmd>(...)  - PASS - (Executes the commands)
+<cmd>(1a)               - FAIL - (Invalid argument)
+<cmd>a12)               - FAIL - (Invalid command)
+<cmd>(15a               - FAIL - (Invalid command)
+<cmd>(a1a5              - FAIL - (Invalid argument and command)
+a<cmd>(10)              - FAIL - (Invalid command)
+<cmd>(...), <cmd>(...)  - FAIL - (Invalid command)
+<cmd>(...) <cmd>(...)   - FAIL - (Invalid command)
+
+######################################################################################################################
 
 Variable test cases:
 
 <var> = 1 / true    - PASS - (Specifies the value of the variable)
-<var>               - PASS - (Prints out the value of the variable)
+<var>               - FAIL - (Invalid command)
 <var> = 1a          - FAIL - (Invalid value must be number or booelan)
 <var> = a = 5       - FAIL - (Invalid operation)
 <var>a              - FAIL - (Variable doesn't exists)
+
+######################################################################################################################
 
 Loop test cases:
 <cmd>(<var>, 1, 10) {}  - PASS - (Executes the loop)
 <cmd>a(<var>, 1, 10) {} - FAIL - (Invalid command)
 <cmd>(<var>a, 1, 10) {} - FAIL - (One of the arguments is invalid) - Must display help message
 
+######################################################################################################################
+
 Conditional commands test cases:
 <cmd>(<condition>) {}   - PASS - (Executes the code, until the condition is true)
 <cmd>a(<condition>) {}  - FAIL - (Invalid command)
 <cmd>(<condition>a) {}  - FAIL - (Condition is invalid) - Must display help message
+
+######################################################################################################################
 
 Logical operators:
     JUST numerical values:
@@ -36,10 +49,12 @@ Logical operators:
     ==                  - equals to
     !=                  - doesn't equal to
 
-    JUST booleanic values:
+    JUST boolean values:
     &&                  - and
     ||                  - or
     !(<boolean_value>)  - not
+
+######################################################################################################################
 
 Operator test cases:
 < - LESS THAN
@@ -93,13 +108,3 @@ false   || false    == false
 !<BOOLEAN_VALUE> - NOT
 !(true)     == false
 !(false)    == true
-
-Arithmetical operators:
-+   - Addition
--   - Subtraction
-*   - Multiplication
-/   - Division
-
-Arithmetical test cases:
-PEMDAS and division by zero!!!
-Check for overflows and underflows!!!

@@ -102,7 +102,7 @@ impl eframe::App for RuggedTurtleApp<'_> {
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
-    fn update(&mut self, ctx: &egui::context::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         const COLOR_PICKER_DIALOG_ID: &str = "color_picker_dialog";
         const WIDTH_INPUT_DIALOG_ID: &str = "width_input_dialog";
         // Logic for showing the dialogs and handling the reply is there is one
