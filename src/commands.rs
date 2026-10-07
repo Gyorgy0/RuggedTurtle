@@ -525,7 +525,11 @@ pub fn execute_command(
                 );
             }
         } else if help_commands.contains(structure.first().unwrap()) {
-            turtle.command_history.push(String::new());
+            turtle.command_history.push(
+                get_text(&locale.to_vec(), selected_locale)
+                    .help_menu
+                    .to_string(),
+            );
         } else {
             turtle.command_history.push(
                 get_text(&locale.to_vec(), selected_locale)
